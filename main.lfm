@@ -6,7 +6,10 @@ object Form1: TForm1
   Caption = 'Обновление 1с'
   ClientHeight = 463
   ClientWidth = 660
+  OnClose = FormClose
+  OnCloseQuery = FormCloseQuery
   OnCreate = FormCreate
+  Position = poDesktopCenter
   LCLVersion = '1.2.4.0'
   object GroupBox1: TGroupBox
     Left = 0
@@ -17,7 +20,7 @@ object Form1: TForm1
     Caption = 'База'
     ClientHeight = 90
     ClientWidth = 656
-    TabOrder = 0
+    TabOrder = 1
     object LabeledEdit1: TLabeledEdit
       Left = 112
       Height = 27
@@ -56,8 +59,7 @@ object Form1: TForm1
       EditLabel.Caption = 'Путь'
       EditLabel.ParentColor = False
       LabelPosition = lpLeft
-      TabOrder = 1
-      Text = 'd:\1c_bases\capital_tmp\'
+      TabOrder = 2
     end
     object BitBtn1: TBitBtn
       Left = 573
@@ -67,7 +69,7 @@ object Form1: TForm1
       Anchors = [akTop, akRight]
       Caption = 'Выбрать'
       OnClick = BitBtn1Click
-      TabOrder = 2
+      TabOrder = 3
     end
     object LabeledEdit4: TLabeledEdit
       Left = 96
@@ -86,15 +88,13 @@ object Form1: TForm1
       EditLabel.Caption = 'Пользователь'
       EditLabel.ParentColor = False
       LabelPosition = lpLeft
-      TabOrder = 3
-      Text = 'Администратор'
+      TabOrder = 4
     end
     object LabeledEdit5: TLabeledEdit
       Left = 416
       Height = 27
       Top = 57
       Width = 235
-      Anchors = [akTop, akRight]
       EchoMode = emPassword
       EditLabel.AnchorSideTop.Control = LabeledEdit5
       EditLabel.AnchorSideTop.Side = asrCenter
@@ -109,8 +109,7 @@ object Form1: TForm1
       EditLabel.ParentColor = False
       LabelPosition = lpLeft
       PasswordChar = '*'
-      TabOrder = 4
-      Text = 'void'
+      TabOrder = 5
     end
     object BitBtn3: TBitBtn
       Left = 573
@@ -120,7 +119,7 @@ object Form1: TForm1
       Anchors = [akTop, akRight]
       Caption = 'Выбрать'
       OnClick = BitBtn3Click
-      TabOrder = 5
+      TabOrder = 1
     end
   end
   object GroupBox2: TGroupBox
@@ -132,7 +131,7 @@ object Form1: TForm1
     Caption = 'Обновления'
     ClientHeight = 281
     ClientWidth = 656
-    TabOrder = 1
+    TabOrder = 2
     object CheckListBox1: TCheckListBox
       Left = 0
       Height = 281
@@ -153,7 +152,7 @@ object Form1: TForm1
     Caption = 'Программа 1с'
     ClientHeight = 26
     ClientWidth = 656
-    TabOrder = 2
+    TabOrder = 0
     object LabeledEdit3: TLabeledEdit
       Left = 40
       Height = 27
@@ -173,7 +172,6 @@ object Form1: TForm1
       EditLabel.ParentColor = False
       LabelPosition = lpLeft
       TabOrder = 0
-      Text = 'c:\Program Files (x86)\1cv8\8.3.5.1231\bin\1cv8.exe'
     end
     object BitBtn2: TBitBtn
       Left = 573
@@ -222,6 +220,10 @@ object Form1: TForm1
     object MenuItem2: TMenuItem
       Caption = 'Удалить'
       OnClick = MenuItem2Click
+    end
+    object MenuItem5: TMenuItem
+      Caption = 'Удалить все'
+      OnClick = MenuItem5Click
     end
     object MenuItem3: TMenuItem
       Enabled = False
