@@ -5,8 +5,9 @@ unit main;
 interface
 
 uses
-  Classes, SysUtils, process, FileUtil, Forms, Controls, Graphics, Dialogs,
-  ExtCtrls, StdCtrls, Buttons, Menus, CheckLst, IniPropStorage, IniFiles;
+  Classes, SysUtils, process, Forms, Controls, Dialogs,
+  ExtCtrls, StdCtrls, Buttons, Menus, CheckLst,
+  IniFiles;
 
 const
   SectionMain: string = 'Main';
@@ -46,6 +47,9 @@ type
     MenuItem3: TMenuItem;
     MenuItem4: TMenuItem;
     MenuItem5: TMenuItem;
+    MenuItem6: TMenuItem;
+    MenuItem7: TMenuItem;
+    MenuItem8: TMenuItem;
     OpenDialog1: TOpenDialog;
     PopupMenu1: TPopupMenu;
     Process1: TProcess;
@@ -56,18 +60,23 @@ type
     procedure FormClose(Sender: TObject; var CloseAction: TCloseAction);
     procedure FormCloseQuery(Sender: TObject; var CanClose: boolean);
     procedure FormCreate(Sender: TObject);
+    procedure LabeledEdit3Change(Sender: TObject);
     procedure MenuItem1Click(Sender: TObject);
     procedure MenuItem2Click(Sender: TObject);
     procedure MenuItem4Click(Sender: TObject);
     procedure MenuItem5Click(Sender: TObject);
+    procedure MenuItem6Click(Sender: TObject);
+    procedure MenuItem7Click(Sender: TObject);
+    procedure MenuItem8Click(Sender: TObject);
   private
     { private declarations }
     MyThread: TMyThread;
     LogFile: string;
     ini: TIniFile;
     procedure CustomExceptionHandler(Sender: TObject; E: Exception);
-    function dumpBase(): boolean;
-    function testBase(): boolean;
+    function dumpIB(): boolean;
+    function dumpCFG(): boolean;
+    function CheckAndRepair(): boolean;
     function updateBase(upd: string): boolean;
   public
     { public declarations }
@@ -137,18 +146,15 @@ begin
     begin
       if Process1.Running then
         raise Exception.Create('Процесс обновления уже запущен, дождитесь окончания!');
-      if (LabeledEdit3.Text = '') or (LabeledEdit2.Text = '') then
+      if (Process1.Executable = '') or (LabeledEdit2.Text = '') then
         raise Exception.Create('Не заполнены необходимые поля!');
 
-      Process1.Executable := LabeledEdit3.Text;
-
-      Process1.CurrentDirectory := ExtractFilePath(ParamStr(0));
       Form1.Caption := 'Обновление: 0%';
       for i := 0 to CheckListBox1.Count - 1 do
       begin
         AddLog(LogFile, CheckListBox1.Items[i]);
         if CheckListBox1.Checked[i] then
-          if not dumpBase() then
+          if not dumpIB() then
             raise Exception.Create('Резервная копия базы не создана!');
 
         if not updateBase(CheckListBox1.Items[i]) then
@@ -157,7 +163,7 @@ begin
         Form1.Caption := 'Обновление: ' + IntToStr(progress) + '%';
       end;
 
-      if not testBase() then
+      if not CheckAndRepair() then
         raise Exception.Create('Тестирование и исправление базы завершено с ошибкой!');
       progress := 100;
       Form1.Caption := 'Обновление: ' + IntToStr(progress) + '% ' + ' Проверьте ' +
@@ -179,8 +185,10 @@ end;
 
 
 
-function TForm1.dumpBase(): boolean;
+function TForm1.dumpIB(): boolean;
 begin
+  if (Process1.Executable = '') or (LabeledEdit2.Text = '') then
+    raise Exception.Create('Не заполнены необходимые поля!');
   with Process1.Parameters do
   begin
     Clear();
@@ -196,8 +204,29 @@ begin
   Result := Process1.ExitStatus = 0;
 end;
 
-function TForm1.testBase(): boolean;
+function TForm1.dumpCFG(): boolean;
 begin
+  if (Process1.Executable = '') or (LabeledEdit2.Text = '') then
+    raise Exception.Create('Не заполнены необходимые поля!');
+  with Process1.Parameters do
+  begin
+    Clear();
+    Add('CONFIG');
+    Add('/F"' + Utf8ToAnsi(LabeledEdit2.Text) + '"');
+    Add('/N"' + Utf8ToAnsi(LabeledEdit4.Text) + '"');
+    Add('/P"' + Utf8ToAnsi(LabeledEdit5.Text) + '"');
+    Add('/DumpCfg"' + IncludeTrailingBackslash(Utf8ToAnsi(LabeledEdit1.Text)) +
+      FormatDateTime('dd.mm.yyyy_hh.nn.ss', Now()) + '.cf"');
+    Add('/Out ' + LogFile + ' -NoTruncate');
+  end;
+  Process1.Execute;
+  Result := Process1.ExitStatus = 0;
+end;
+
+function TForm1.CheckAndRepair(): boolean;
+begin
+  if (Process1.Executable = '') or (LabeledEdit2.Text = '') then
+    raise Exception.Create('Не заполнены необходимые поля!');
   with Process1.Parameters do
   begin
     Clear();
@@ -214,6 +243,8 @@ end;
 
 function TForm1.updateBase(upd: string): boolean;
 begin
+  if (Process1.Executable = '') or (LabeledEdit2.Text = '') then
+    raise Exception.Create('Не заполнены необходимые поля!');
   with Process1.Parameters do
   begin
     Clear();
@@ -292,7 +323,13 @@ begin
   finally
     list.Free;
   end;
+  Process1.CurrentDirectory := ExtractFilePath(ParamStr(0));
   Process1.Options := [poWaitOnExit];
+end;
+
+procedure TForm1.LabeledEdit3Change(Sender: TObject);
+begin
+  Process1.Executable := LabeledEdit3.Text;
 end;
 
 procedure TForm1.BitBtn1Click(Sender: TObject);
@@ -345,6 +382,28 @@ end;
 procedure TForm1.MenuItem5Click(Sender: TObject);
 begin
   CheckListBox1.Items.Clear;
+end;
+
+procedure TForm1.MenuItem6Click(Sender: TObject);
+begin
+  if not dumpIB() then
+    raise Exception.Create('Резервная копия базы не создана!');
+  MessageDlg('Резервная копия базы успешно создана!', mtInformation, [mbOK], 0);
+
+end;
+
+procedure TForm1.MenuItem7Click(Sender: TObject);
+begin
+  if not dumpCFG() then
+    raise Exception.Create('Кофигурация не выгружена!');
+  MessageDlg('Кофигурация успешно выгружена!', mtInformation, [mbOK], 0);
+end;
+
+procedure TForm1.MenuItem8Click(Sender: TObject);
+begin
+  if not CheckAndRepair() then
+    raise Exception.Create('Тестирование и исправление базы завершено с ошибкой!');
+  MessageDlg('Тестирование и исправление базы успешно завершено!', mtInformation, [mbOK], 0);
 end;
 
 

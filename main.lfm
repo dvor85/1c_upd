@@ -1,7 +1,7 @@
 object Form1: TForm1
-  Left = 469
+  Left = 408
   Height = 463
-  Top = 209
+  Top = 157
   Width = 660
   Caption = 'Обновление 1с'
   ClientHeight = 463
@@ -172,6 +172,7 @@ object Form1: TForm1
       EditLabel.ParentColor = False
       LabelPosition = lpLeft
       TabOrder = 0
+      OnChange = LabeledEdit3Change
     end
     object BitBtn2: TBitBtn
       Left = 573
@@ -227,6 +228,18 @@ object Form1: TForm1
     end
     object MenuItem3: TMenuItem
       Enabled = False
+    end
+    object MenuItem6: TMenuItem
+      Caption = 'Выгрузить ИБ'
+      OnClick = MenuItem6Click
+    end
+    object MenuItem7: TMenuItem
+      Caption = 'Выгрузить конфигурацию'
+      OnClick = MenuItem7Click
+    end
+    object MenuItem8: TMenuItem
+      Caption = 'Тестирование и исправление'
+      OnClick = MenuItem8Click
     end
     object MenuItem4: TMenuItem
       Caption = 'Выполнить обновление'
