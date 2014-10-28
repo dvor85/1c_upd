@@ -166,9 +166,12 @@ begin
           begin
             AddLog(LogFile, CheckListBox1.Items[i]);
             if CheckListBox1.Checked[i] then
+            begin
               if not dumpIB() then
                 raise Exception.Create('Выгрузка информационной базы не выполнена!');
-
+              progress := (i + 1) * 50 div (CheckListBox1.Count + 1);
+              Form1.Caption := 'Идет обновление: ' + IntToStr(progress) + '%...';
+            end;
             if not updateBase(CheckListBox1.Items[i]) then
               raise Exception.Create('Ошибка обновления!');
             progress := (i + 1) * 100 div (CheckListBox1.Count + 1);
@@ -339,13 +342,19 @@ var
 begin
   Application.OnException := @CustomExceptionHandler;
 
+  Process1.CurrentDirectory := ExtractFilePath(ParamStr(0));
+  Process1.Options := [poWaitOnExit];
+
   ini := TIniFile.Create(ChangeFileExt(ParamStr(0), '.ini'));
   LabeledEdit3.Text := ini.ReadString(SectionMain, KeyExecutable, '');
   LogFile := ini.ReadString(SectionMain, KeyLogFile, 'logs\out.log');
   LabeledEdit1.Text := ini.ReadString(SectionBase, KeyBakcupPath, '');
   LabeledEdit2.Text := ini.ReadString(SectionBase, KeyPath, '');
   LabeledEdit4.Text := ini.ReadString(SectionBase, KeyUser, '');
-  LabeledEdit5.Text := DecodeStringBase64(ini.ReadString(SectionBase, KeyPass, ''));
+  try
+    LabeledEdit5.Text := DecodeStringBase64(ini.ReadString(SectionBase, KeyPass, ''));
+  except
+  end;
   list := TStringList.Create;
   try
     ini.ReadSectionValues(SectionUpdates, list);
@@ -354,8 +363,7 @@ begin
   finally
     list.Free;
   end;
-  Process1.CurrentDirectory := ExtractFilePath(ParamStr(0));
-  Process1.Options := [poWaitOnExit];
+
 end;
 
 procedure TForm1.LabeledEdit3Change(Sender: TObject);
