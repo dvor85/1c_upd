@@ -22,6 +22,8 @@ const
 
 type
   TMyThread = class(TThread)
+    FAction: integer;
+    constructor Create(CreateSuspended: boolean; Action: integer); overload;
   protected
     procedure Execute; override;
   end;
@@ -91,6 +93,8 @@ var
 
 implementation
 
+uses base64;
+
 
 
 {$R *.lfm}
@@ -135,7 +139,12 @@ end;
 { TForm1 }
 
 
-
+constructor TMyThread.Create(CreateSuspended: boolean; Action: integer);
+begin
+  inherited Create(CreateSuspended);
+  FAction := Action;
+  FreeOnTerminate := True;
+end;
 
 procedure TMyThread.Execute;
 var
@@ -145,37 +154,65 @@ begin
     with Form1 do
     begin
       if Process1.Running then
-        raise Exception.Create('Процесс обновления уже запущен, дождитесь окончания!');
+        raise Exception.Create('Процесс уже запущен, дождитесь окончания!');
+
       if (Process1.Executable = '') or (LabeledEdit2.Text = '') then
         raise Exception.Create('Не заполнены необходимые поля!');
+      case FAction of
+        0:
+        begin
+          Form1.Caption := 'Идет обновление: 0%...';
+          for i := 0 to CheckListBox1.Count - 1 do
+          begin
+            AddLog(LogFile, CheckListBox1.Items[i]);
+            if CheckListBox1.Checked[i] then
+              if not dumpIB() then
+                raise Exception.Create('Выгрузка информационной базы не выполнена!');
 
-      Form1.Caption := 'Обновление: 0%';
-      for i := 0 to CheckListBox1.Count - 1 do
-      begin
-        AddLog(LogFile, CheckListBox1.Items[i]);
-        if CheckListBox1.Checked[i] then
+            if not updateBase(CheckListBox1.Items[i]) then
+              raise Exception.Create('Ошибка обновления!');
+            progress := (i + 1) * 100 div (CheckListBox1.Count + 1);
+            Form1.Caption := 'Идет обновление: ' + IntToStr(progress) + '%...';
+          end;
+
+          if not CheckAndRepair() then
+            raise Exception.Create('Тестирование и исправление базы завершено с ошибкой!');
+
+          Form1.Caption := 'Обновление успешно завершено';
+        end;
+
+        1:
+        begin
+          Form1.Caption := 'Идет выгрузка информационной базы...';
           if not dumpIB() then
-            raise Exception.Create('Резервная копия базы не создана!');
+            raise Exception.Create('Выгрузка информационной базы не выполнена!');
+          Form1.Caption := 'Выгрузка информационной базы завершена!';
+        end;
 
-        if not updateBase(CheckListBox1.Items[i]) then
-          raise Exception.Create('Ошибка обновления!');
-        progress := (i + 1) * 100 div (CheckListBox1.Count + 1);
-        Form1.Caption := 'Обновление: ' + IntToStr(progress) + '%';
+        2:
+        begin
+          Form1.Caption := 'Идет выгрузка конфигурации...';
+          if not dumpCFG() then
+            raise Exception.Create('Кофигурация не выгружена!');
+          Form1.Caption := 'Кофигурация успешно выгружена!';
+        end;
+
+        3:
+        begin
+          Form1.Caption := 'Идет тестирование и исправление базы...';
+          if not CheckAndRepair() then
+            raise Exception.Create('Тестирование и исправление базы завершено с ошибкой!');
+          Form1.Caption := 'Тестирование и исправление базы успешно завершено!';
+        end;
+
       end;
-
-      if not CheckAndRepair() then
-        raise Exception.Create('Тестирование и исправление базы завершено с ошибкой!');
-      progress := 100;
-      Form1.Caption := 'Обновление: ' + IntToStr(progress) + '% ' + ' Проверьте ' +
-        ExtractFilePath(ParamStr(0)) + LogFile;
-      MessageDlg('Обновление успешно завершено!', mtInformation, [mbOK], 0);
     end;
-
+    MessageDlg(Form1.Caption, mtInformation, [mbOK], 0);
   except
     on e: Exception do
     begin
       AddLog(Form1.LogFile, e.message);
-      Form1.Caption := 'Обновление завершено с ошибкой: "' + e.message + '" Проверьте ' +
+      Form1.Caption := 'Операция завершена с ошибкой: "' + e.message + '". Проверьте ' +
         ExtractFilePath(ParamStr(0)) + Form1.LogFile;
       MessageDlg(Form1.Caption, mtError, [mbOK], 0);
     end;
@@ -187,8 +224,6 @@ end;
 
 function TForm1.dumpIB(): boolean;
 begin
-  if (Process1.Executable = '') or (LabeledEdit2.Text = '') then
-    raise Exception.Create('Не заполнены необходимые поля!');
   with Process1.Parameters do
   begin
     Clear();
@@ -206,8 +241,6 @@ end;
 
 function TForm1.dumpCFG(): boolean;
 begin
-  if (Process1.Executable = '') or (LabeledEdit2.Text = '') then
-    raise Exception.Create('Не заполнены необходимые поля!');
   with Process1.Parameters do
   begin
     Clear();
@@ -225,8 +258,6 @@ end;
 
 function TForm1.CheckAndRepair(): boolean;
 begin
-  if (Process1.Executable = '') or (LabeledEdit2.Text = '') then
-    raise Exception.Create('Не заполнены необходимые поля!');
   with Process1.Parameters do
   begin
     Clear();
@@ -278,7 +309,7 @@ begin
     ini.WriteString(SectionBase, KeyBakcupPath, LabeledEdit1.Text);
     ini.WriteString(SectionBase, KeyPath, LabeledEdit2.Text);
     ini.WriteString(SectionBase, KeyUser, LabeledEdit4.Text);
-    ini.WriteString(SectionBase, KeyPass, LabeledEdit5.Text);
+    ini.WriteString(SectionBase, KeyPass, EncodeStringBase64(LabeledEdit5.Text));
     ini.EraseSection(SectionUpdates);
     for i := 0 to CheckListBox1.Count - 1 do
       ini.WriteString(SectionUpdates, IntToStr(i), CheckListBox1.Items[i]);
@@ -288,7 +319,7 @@ end;
 procedure TForm1.FormCloseQuery(Sender: TObject; var CanClose: boolean);
 begin
   if Process1.Running then
-    CanClose := (MessageDlg('Идет процесс обновления. Вы действительно хотите его прервать?',
+    CanClose := (MessageDlg('Идет работа с базой данных. Вы действительно хотите закрыть программу?',
       mtWarning, mbYesNo, 0) = mrYes)
   else
     CanClose := True;
@@ -297,8 +328,8 @@ end;
 procedure TForm1.CustomExceptionHandler(Sender: TObject; E: Exception);
 begin
   AddLog(LogFile, E.Message);
-  MessageDlg('Непредвиденная ошибка: ' + E.Message + '.Проверьте ' + ExtractFilePath(ParamStr(0)) +
-    LogFile, mtError, [mbOK], 0);
+  MessageDlg('Непредвиденная ошибка: "' + E.Message + '" .Проверьте ' +
+    ExtractFilePath(ParamStr(0)) + LogFile, mtError, [mbOK], 0);
 end;
 
 procedure TForm1.FormCreate(Sender: TObject);
@@ -314,7 +345,7 @@ begin
   LabeledEdit1.Text := ini.ReadString(SectionBase, KeyBakcupPath, '');
   LabeledEdit2.Text := ini.ReadString(SectionBase, KeyPath, '');
   LabeledEdit4.Text := ini.ReadString(SectionBase, KeyUser, '');
-  LabeledEdit5.Text := ini.ReadString(SectionBase, KeyPass, '');
+  LabeledEdit5.Text := DecodeStringBase64(ini.ReadString(SectionBase, KeyPass, ''));
   list := TStringList.Create;
   try
     ini.ReadSectionValues(SectionUpdates, list);
@@ -376,7 +407,7 @@ end;
 
 procedure TForm1.MenuItem4Click(Sender: TObject);
 begin
-  MyThread := TMyThread.Create(False);
+  MyThread := TMyThread.Create(False, 0);
 end;
 
 procedure TForm1.MenuItem5Click(Sender: TObject);
@@ -386,24 +417,17 @@ end;
 
 procedure TForm1.MenuItem6Click(Sender: TObject);
 begin
-  if not dumpIB() then
-    raise Exception.Create('Резервная копия базы не создана!');
-  MessageDlg('Резервная копия базы успешно создана!', mtInformation, [mbOK], 0);
-
+  MyThread := TMyThread.Create(False, 1);
 end;
 
 procedure TForm1.MenuItem7Click(Sender: TObject);
 begin
-  if not dumpCFG() then
-    raise Exception.Create('Кофигурация не выгружена!');
-  MessageDlg('Кофигурация успешно выгружена!', mtInformation, [mbOK], 0);
+  MyThread := TMyThread.Create(False, 2);
 end;
 
 procedure TForm1.MenuItem8Click(Sender: TObject);
 begin
-  if not CheckAndRepair() then
-    raise Exception.Create('Тестирование и исправление базы завершено с ошибкой!');
-  MessageDlg('Тестирование и исправление базы успешно завершено!', mtInformation, [mbOK], 0);
+  MyThread := TMyThread.Create(False, 3);
 end;
 
 
