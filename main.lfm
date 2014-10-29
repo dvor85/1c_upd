@@ -1,11 +1,12 @@
 object Form1: TForm1
-  Left = 408
-  Height = 463
-  Top = 157
-  Width = 660
+  Left = 548
+  Height = 492
+  Top = 197
+  Width = 661
   Caption = 'Обновление 1с'
-  ClientHeight = 463
-  ClientWidth = 660
+  ClientHeight = 468
+  ClientWidth = 661
+  Menu = MainMenu1
   OnClose = FormClose
   OnCloseQuery = FormCloseQuery
   OnCreate = FormCreate
@@ -15,17 +16,17 @@ object Form1: TForm1
     Left = 0
     Height = 112
     Top = 48
-    Width = 660
+    Width = 661
     Align = alTop
     Caption = 'База'
     ClientHeight = 90
-    ClientWidth = 656
+    ClientWidth = 657
     TabOrder = 1
     object LabeledEdit1: TLabeledEdit
       Left = 112
       Height = 27
       Top = -3
-      Width = 458
+      Width = 459
       Anchors = [akTop, akLeft, akRight]
       EditLabel.AnchorSideTop.Control = LabeledEdit1
       EditLabel.AnchorSideTop.Side = asrCenter
@@ -45,7 +46,7 @@ object Form1: TForm1
       Left = 40
       Height = 27
       Top = 27
-      Width = 530
+      Width = 531
       Anchors = [akTop, akLeft, akRight]
       EditLabel.AnchorSideTop.Control = LabeledEdit2
       EditLabel.AnchorSideTop.Side = asrCenter
@@ -62,7 +63,7 @@ object Form1: TForm1
       TabOrder = 2
     end
     object BitBtn1: TBitBtn
-      Left = 573
+      Left = 574
       Height = 27
       Top = 27
       Width = 78
@@ -112,7 +113,7 @@ object Form1: TForm1
       TabOrder = 5
     end
     object BitBtn3: TBitBtn
-      Left = 573
+      Left = 574
       Height = 27
       Top = -3
       Width = 78
@@ -124,19 +125,19 @@ object Form1: TForm1
   end
   object GroupBox2: TGroupBox
     Left = 0
-    Height = 303
+    Height = 280
     Top = 160
-    Width = 660
+    Width = 661
     Align = alClient
     Caption = 'Обновления'
-    ClientHeight = 281
-    ClientWidth = 656
+    ClientHeight = 258
+    ClientWidth = 657
     TabOrder = 2
-    object CheckListBox1: TCheckListBox
+    object ListBox1: TListBox
       Left = 0
-      Height = 281
+      Height = 258
       Top = 0
-      Width = 656
+      Width = 657
       Align = alClient
       ItemHeight = 0
       PopupMenu = PopupMenu1
@@ -147,17 +148,17 @@ object Form1: TForm1
     Left = 0
     Height = 48
     Top = 0
-    Width = 660
+    Width = 661
     Align = alTop
     Caption = 'Программа 1с'
     ClientHeight = 26
-    ClientWidth = 656
+    ClientWidth = 657
     TabOrder = 0
     object LabeledEdit3: TLabeledEdit
       Left = 40
       Height = 27
       Top = -1
-      Width = 530
+      Width = 531
       Anchors = [akTop, akLeft, akRight]
       EditLabel.AnchorSideTop.Control = LabeledEdit3
       EditLabel.AnchorSideTop.Side = asrCenter
@@ -175,7 +176,7 @@ object Form1: TForm1
       OnChange = LabeledEdit3Change
     end
     object BitBtn2: TBitBtn
-      Left = 573
+      Left = 574
       Height = 27
       Top = -1
       Width = 78
@@ -185,13 +186,20 @@ object Form1: TForm1
       TabOrder = 1
     end
   end
+  object StatusBar1: TStatusBar
+    Left = 0
+    Height = 28
+    Top = 440
+    Width = 661
+    Panels = <>
+  end
   object SelectDirectoryDialog1: TSelectDirectoryDialog
     Options = [ofReadOnly, ofEnableSizing, ofViewDetail]
     left = 344
     top = 80
   end
   object OpenDialog1: TOpenDialog
-    Filter = '*.cfu;*.cf|*.cfu;*.cf|*.exe|*.exe'
+    Filter = '*.cfu;*.cf|*.cfu;*.cf|*.exe|*.exe|*.cf|*.cf|*.dt|*.dt'
     left = 248
     top = 304
   end
@@ -226,23 +234,42 @@ object Form1: TForm1
       Caption = 'Удалить все'
       OnClick = MenuItem5Click
     end
-    object MenuItem3: TMenuItem
-      Enabled = False
+  end
+  object MainMenu1: TMainMenu
+    left = 152
+    top = 240
+    object MenuItem9: TMenuItem
+      Caption = 'Информационная база'
+      object MenuItem10: TMenuItem
+        Caption = 'Выгрузить ИБ'
+        OnClick = MenuItem10Click
+      end
+      object MenuItem11: TMenuItem
+        Caption = 'Загрузить ИБ'
+        OnClick = MenuItem11Click
+      end
+      object MenuItem15: TMenuItem
+        Caption = 'Выполнить обновление'
+        OnClick = MenuItem15Click
+      end
+      object MenuItem3: TMenuItem
+        Caption = 'Тестирование и исправление'
+        OnClick = MenuItem3Click
+      end
     end
-    object MenuItem6: TMenuItem
-      Caption = 'Выгрузить ИБ'
-      OnClick = MenuItem6Click
-    end
-    object MenuItem7: TMenuItem
-      Caption = 'Выгрузить конфигурацию'
-      OnClick = MenuItem7Click
-    end
-    object MenuItem8: TMenuItem
-      Caption = 'Тестирование и исправление'
-      OnClick = MenuItem8Click
+    object MenuItem12: TMenuItem
+      Caption = 'Конфигурация'
+      object MenuItem14: TMenuItem
+        Caption = 'Выгрузить конфигурацию'
+        OnClick = MenuItem14Click
+      end
+      object MenuItem13: TMenuItem
+        Caption = 'Загрузить конфигурацию'
+        OnClick = MenuItem13Click
+      end
     end
     object MenuItem4: TMenuItem
-      Caption = 'Выполнить обновление'
+      Caption = 'О программе'
       OnClick = MenuItem4Click
     end
   end
