@@ -133,15 +133,28 @@ object Form1: TForm1
     ClientHeight = 258
     ClientWidth = 657
     TabOrder = 2
-    object ListBox1: TListBox
+    object ListView1: TListView
       Left = 0
       Height = 258
       Top = 0
       Width = 657
       Align = alClient
-      ItemHeight = 0
+      AutoWidthLastColumn = True
+      Columns = <      
+        item
+          Caption = 'Действие'
+          Width = 200
+        end      
+        item
+          Caption = 'Параметр'
+          Width = 403
+        end>
+      ColumnClick = False
       PopupMenu = PopupMenu1
+      RowSelect = True
+      ScrollBars = ssAutoBoth
       TabOrder = 0
+      ViewStyle = vsReport
     end
   end
   object GroupBox3: TGroupBox
@@ -222,9 +235,24 @@ object Form1: TForm1
   object PopupMenu1: TPopupMenu
     left = 152
     top = 304
-    object MenuItem1: TMenuItem
-      Caption = 'Добавить'
-      OnClick = MenuItem1Click
+    object MenuItem7: TMenuItem
+      Caption = 'Команды'
+      object MenuItem1: TMenuItem
+        Tag = 1
+        Caption = 'Обновить'
+        OnClick = MenuItem1Click
+      end
+      object MenuItem16: TMenuItem
+        Caption = 'Выгрузить ИБ'
+        OnClick = MenuItem16Click
+      end
+      object MenuItem17: TMenuItem
+        Caption = 'Запустить 1С'
+        OnClick = MenuItem17Click
+      end
+    end
+    object MenuItem8: TMenuItem
+      Caption = '-'
     end
     object MenuItem2: TMenuItem
       Caption = 'Удалить'

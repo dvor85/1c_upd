@@ -20,6 +20,12 @@ const
   KeyLogFile: string = 'LogFile';
   SectionUpdates: string = 'Updates';
 
+  CommandUpdate: string = 'UPDATE';
+  CommandDumbIB: string = 'DUMB_IB';
+  CommandRunEnterprise: string = 'RUN_ENTERPRISE';
+
+
+
 type
 
   TBaseAction = (ba_update, ba_dumpib, ba_restoreib, ba_dumpcfg, ba_loadcfg, ba_check, ba_enterprise);
@@ -38,7 +44,6 @@ type
     BitBtn1: TBitBtn;
     BitBtn2: TBitBtn;
     BitBtn3: TBitBtn;
-    ListBox1: TListBox;
     GroupBox1: TGroupBox;
     GroupBox2: TGroupBox;
     GroupBox3: TGroupBox;
@@ -47,6 +52,7 @@ type
     LabeledEdit3: TLabeledEdit;
     LabeledEdit4: TLabeledEdit;
     LabeledEdit5: TLabeledEdit;
+    ListView1: TListView;
     MainMenu1: TMainMenu;
     MenuItem1: TMenuItem;
     MenuItem10: TMenuItem;
@@ -55,11 +61,15 @@ type
     MenuItem13: TMenuItem;
     MenuItem14: TMenuItem;
     MenuItem15: TMenuItem;
+    MenuItem16: TMenuItem;
+    MenuItem17: TMenuItem;
     MenuItem2: TMenuItem;
     MenuItem3: TMenuItem;
     MenuItem4: TMenuItem;
     MenuItem5: TMenuItem;
     MenuItem6: TMenuItem;
+    MenuItem7: TMenuItem;
+    MenuItem8: TMenuItem;
     MenuItem9: TMenuItem;
     OpenDialog1: TOpenDialog;
     PopupMenu1: TPopupMenu;
@@ -78,6 +88,8 @@ type
     procedure MenuItem13Click(Sender: TObject);
     procedure MenuItem14Click(Sender: TObject);
     procedure MenuItem15Click(Sender: TObject);
+    procedure MenuItem16Click(Sender: TObject);
+    procedure MenuItem17Click(Sender: TObject);
     procedure MenuItem1Click(Sender: TObject);
     procedure MenuItem2Click(Sender: TObject);
     procedure MenuItem3Click(Sender: TObject);
@@ -170,6 +182,7 @@ end;
 procedure TMyThread.Execute;
 var
   i, progress, add: integer;
+  li: TListItem;
 begin
   add := 4;
   Form1.SetComponentsEnabled(False);
@@ -186,7 +199,33 @@ begin
         case FBaseAction of
           ba_update:
           begin
-            if not dumpIB() then
+            for i := 0 to ListView1.Items.Count - 1 do
+            begin
+              li := ListView1.Items[i];
+
+
+              if li.Caption = CommandUpdate then
+              begin
+                AddLog(LogFile, 'Установка обновления: "' + li.SubItems[0] + '"');
+                if not updateBase(li.SubItems[0], False) then
+                  raise Exception.Create('Ошибка обновления!');
+              end
+              else if li.Caption = CommandDumbIB then
+              begin
+                AddLog(LogFile, 'Выгрузка информационной базы');
+                Form1.Caption := 'Идет выгрузка информационной базы...';
+                if not dumpIB() then
+                  raise Exception.Create('Выгрузка информационной базы не выполнена!');
+              end
+              else if li.Caption = CommandRunEnterprise then
+              begin
+                AddLog(LogFile, 'Запуск в режиме ENTERPRISE');
+                if not runEnterprise() then
+                  raise Exception.Create('Запуск в режиме ENTERPRISE завершен с ошибкой!');
+              end;
+
+            end;
+           { if not dumpIB() then
               raise Exception.Create('Выгрузка информационной базы не выполнена!');
             progress := 1 div (ListBox1.Count + add);
             Form1.Caption := 'Идет обновление: ' + IntToStr(progress) + '%...';
@@ -211,7 +250,7 @@ begin
             if not CheckAndRepair() then
               raise Exception.Create('Тестирование и исправление базы завершено с ошибкой!');
 
-            Form1.Caption := 'Обновление успешно завершено';
+            Form1.Caption := 'Обновление успешно завершено';    }
           end;
 
           ba_dumpib:
@@ -260,7 +299,7 @@ begin
           end;
 
           ba_enterprise:
-           begin
+          begin
             AddLog(LogFile, 'Запуск в режиме ENTERPRISE');
             Form1.Caption := 'Запуск в режиме ENTERPRISE...';
             if not runEnterprise() then
@@ -296,7 +335,7 @@ begin
   BitBtn1.Enabled := State;
   BitBtn2.Enabled := State;
   BitBtn3.Enabled := State;
-  ListBox1.Enabled := State;
+  //ListBox1.Enabled := State;
 end;
 
 function TForm1.runEnterprise(): boolean;
@@ -452,6 +491,8 @@ end;
 procedure TForm1.FormClose(Sender: TObject; var CloseAction: TCloseAction);
 var
   i: integer;
+  li: TListItem;
+  par: string;
 begin
   if MessageDlg('Сохранить настройки?', mtConfirmation, mbYesNo, 0) = mrYes then
   begin
@@ -461,8 +502,16 @@ begin
     ini.WriteString(SectionBase, KeyUser, LabeledEdit4.Text);
     ini.WriteString(SectionBase, KeyPass, EncodeStringBase64(LabeledEdit5.Text));
     ini.EraseSection(SectionUpdates);
-    for i := 0 to ListBox1.Count - 1 do
-      ini.WriteString(SectionUpdates, IntToStr(i), ListBox1.Items[i]);
+    for i := 0 to ListView1.Items.Count - 1 do
+    begin
+      li := ListView1.Items[i];
+      if li.SubItems.Count > 0 then
+        par := li.SubItems[0]
+      else
+        par := '';
+
+      ini.WriteString(SectionUpdates, IntToStr(i) + '=' + li.Caption, par);
+    end;
     ini.Free;
   end;
 end;
@@ -487,6 +536,7 @@ procedure TForm1.FormCreate(Sender: TObject);
 var
   list: TStrings;
   i: integer;
+  li: TListItem;
 begin
   Application.OnException := @CustomExceptionHandler;
 
@@ -508,9 +558,15 @@ begin
   end;
   list := TStringList.Create;
   try
-    ini.ReadSectionValues(SectionUpdates, list);
+    ini.ReadSectionRaw(SectionUpdates, list);
     for i := 0 to list.Count - 1 do
-      ListBox1.Items.Add(list.ValueFromIndex[i]);
+    begin
+      list[i] := list.ValueFromIndex[i];
+
+      li := ListView1.Items.Add();
+      li.Caption := list.Names[i];
+      li.SubItems.Add(list.ValueFromIndex[i]);
+    end;
   finally
     list.Free;
   end;
@@ -545,17 +601,20 @@ end;
 procedure TForm1.MenuItem1Click(Sender: TObject);
 var
   k: integer;
+  li: TListItem;
 begin
-  if ListBox1.Count > 0 then
-    OpenDialog1.InitialDir := ExtractFilePath(ListBox1.Items[ListBox1.Count - 1]);
+  {if ListView1.Items.Count > 0 then
+    OpenDialog1.InitialDir := ExtractFilePath(ListView1.Items[ListView1.Items.Count - 1].SubItems[0]);}
   OpenDialog1.FilterIndex := 1;
   if (OpenDialog1.Execute) then
   begin
-    k := ListBox1.ItemIndex;
+    k := ListView1.ItemIndex;
     if (k > -1) then
-      ListBox1.Items.Insert(k, OpenDialog1.FileName)
+      li := ListView1.Items.Insert(k)
     else
-      ListBox1.Items.Add(OpenDialog1.FileName);
+      li := ListView1.Items.Add;
+    li.Caption := CommandUpdate;
+    li.SubItems.Add(OpenDialog1.FileName);
   end;
 end;
 
@@ -563,16 +622,16 @@ procedure TForm1.MenuItem2Click(Sender: TObject);
 var
   k: integer;
 begin
-  k := ListBox1.ItemIndex;
+  k := ListView1.ItemIndex;
   if k < 0 then
     exit;
-  ListBox1.Items.Delete(k);
+  ListView1.Items.Delete(k);
 end;
 
 
 procedure TForm1.MenuItem5Click(Sender: TObject);
 begin
-  ListBox1.Items.Clear;
+  ListView1.Items.Clear;
 end;
 
 procedure TForm1.MenuItem6Click(Sender: TObject);
@@ -583,6 +642,32 @@ end;
 procedure TForm1.MenuItem15Click(Sender: TObject);
 begin
   MyThread := TMyThread.Create(ba_update);
+end;
+
+procedure TForm1.MenuItem16Click(Sender: TObject);
+var
+  k: integer;
+  li: TListItem;
+begin
+  k := ListView1.ItemIndex;
+  if (k > -1) then
+    li := ListView1.Items.Insert(k)
+  else
+    li := ListView1.Items.Add;
+  li.Caption := CommandDumbIB;
+end;
+
+procedure TForm1.MenuItem17Click(Sender: TObject);
+var
+  k: integer;
+  li: TListItem;
+begin
+  k := ListView1.ItemIndex;
+  if (k > -1) then
+    li := ListView1.Items.Insert(k)
+  else
+    li := ListView1.Items.Add;
+  li.Caption := CommandRunEnterprise;
 end;
 
 procedure TForm1.MenuItem10Click(Sender: TObject);
@@ -626,7 +711,6 @@ begin
     'Автор: Дмитрий Воротилин, dvor85@gmail.com',
     mtInformation, [mbOK], 0);
 end;
-
 
 
 
