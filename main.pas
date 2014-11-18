@@ -22,7 +22,7 @@ const
 
 type
 
-  TBaseAction = (ba_update, ba_dumpib, ba_restoreib, ba_dumpcfg, ba_loadcfg, ba_check);
+  TBaseAction = (ba_update, ba_dumpib, ba_restoreib, ba_dumpcfg, ba_loadcfg, ba_check, ba_enterprise);
 
   TMyThread = class(TThread)
     FBaseAction: TBaseAction;
@@ -59,6 +59,7 @@ type
     MenuItem3: TMenuItem;
     MenuItem4: TMenuItem;
     MenuItem5: TMenuItem;
+    MenuItem6: TMenuItem;
     MenuItem9: TMenuItem;
     OpenDialog1: TOpenDialog;
     PopupMenu1: TPopupMenu;
@@ -82,6 +83,7 @@ type
     procedure MenuItem3Click(Sender: TObject);
     procedure MenuItem4Click(Sender: TObject);
     procedure MenuItem5Click(Sender: TObject);
+    procedure MenuItem6Click(Sender: TObject);
 
   private
     { private declarations }
@@ -91,6 +93,7 @@ type
     ini: TIniFile;
     procedure SetComponentsEnabled(State: boolean);
     procedure CustomExceptionHandler(Sender: TObject; E: Exception);
+    function runEnterprise(): boolean;
     function dumpIB(): boolean;
     function restoreIB(filename: string): boolean;
     function dumpCFG(): boolean;
@@ -168,7 +171,7 @@ procedure TMyThread.Execute;
 var
   i, progress, add: integer;
 begin
-  add := 3;
+  add := 4;
   Form1.SetComponentsEnabled(False);
   try
     try
@@ -185,12 +188,12 @@ begin
           begin
             if not dumpIB() then
               raise Exception.Create('Выгрузка информационной базы не выполнена!');
-            progress := 1 div (ListBox1.Count + add);
+            progress := 1 * 100 div (ListBox1.Count + add);
             Form1.Caption := 'Идет обновление: ' + IntToStr(progress) + '%...';
 
             if not CheckAndRepair() then
               raise Exception.Create('Тестирование и исправление базы завершено с ошибкой!');
-            progress := 2 div (ListBox1.Count + add);
+            progress := 2 * 100 div (ListBox1.Count + add);
             Form1.Caption := 'Идет обновление: ' + IntToStr(progress) + '%...';
 
             for i := 0 to ListBox1.Count - 1 do
@@ -198,9 +201,14 @@ begin
               AddLog(LogFile, 'Установка обновления: "' + ListBox1.Items[i] + '"');
               if not updateBase(ListBox1.Items[i], (i = ListBox1.Count - 1)) then
                 raise Exception.Create('Ошибка обновления!');
-              progress := (i + add) * 100 div (ListBox1.Count + add);
+              progress := (i + add - 1) * 100 div (ListBox1.Count + add);
               Form1.Caption := 'Идет обновление: ' + IntToStr(progress) + '%...';
             end;
+
+            if not runEnterprise() then
+              raise Exception.Create('Запуск в режиме ENTERPRISE завершен с ошибкой!');
+            progress := (ListBox1.Count + add - 1) * 100 div (ListBox1.Count + add);
+            Form1.Caption := 'Идет обновление: ' + IntToStr(progress) + '%...';
 
             if not CheckAndRepair() then
               raise Exception.Create('Тестирование и исправление базы завершено с ошибкой!');
@@ -253,6 +261,15 @@ begin
             Form1.Caption := 'Тестирование и исправление базы успешно завершено!';
           end;
 
+          ba_enterprise:
+          begin
+            AddLog(LogFile, 'Запуск в режиме ENTERPRISE');
+            Form1.Caption := 'Запуск в режиме ENTERPRISE...';
+            if not runEnterprise() then
+              raise Exception.Create('Запуск в режиме ENTERPRISE завершен с ошибкой!');
+            Form1.Caption := 'Запуск в режиме ENTERPRISE успешно завершен!';
+          end;
+
         end;
       end;
       MessageDlg(Form1.Caption, mtInformation, [mbOK], 0);
@@ -284,12 +301,29 @@ begin
   ListBox1.Enabled := State;
 end;
 
+function TForm1.runEnterprise(): boolean;
+begin
+  with Process1.Parameters do
+  begin
+    Clear();
+    Add('ENTERPRISE');
+    Add('/DisableStartupMessages');
+    Add('/F"' + Utf8ToAnsi(LabeledEdit2.Text) + '"');
+    Add('/N"' + Utf8ToAnsi(LabeledEdit4.Text) + '"');
+    Add('/P"' + Utf8ToAnsi(LabeledEdit5.Text) + '"');
+    Add('/Out "' + Utf8ToAnsi(LogFile) + '" -NoTruncate');
+  end;
+  Process1.Execute;
+  Result := Process1.ExitStatus = 0;
+end;
+
 function TForm1.restoreIB(filename: string): boolean;
 begin
   with Process1.Parameters do
   begin
     Clear();
     Add('CONFIG');
+    Add('/DisableStartupMessages');
     Add('/F"' + Utf8ToAnsi(LabeledEdit2.Text) + '"');
     Add('/N"' + Utf8ToAnsi(LabeledEdit4.Text) + '"');
     Add('/P"' + Utf8ToAnsi(LabeledEdit5.Text) + '"');
@@ -306,6 +340,7 @@ begin
   begin
     Clear();
     Add('CONFIG');
+    Add('/DisableStartupMessages');
     Add('/F"' + Utf8ToAnsi(LabeledEdit2.Text) + '"');
     Add('/N"' + Utf8ToAnsi(LabeledEdit4.Text) + '"');
     Add('/P"' + Utf8ToAnsi(LabeledEdit5.Text) + '"');
@@ -323,6 +358,7 @@ begin
   begin
     Clear();
     Add('CONFIG');
+    Add('/DisableStartupMessages');
     Add('/F"' + Utf8ToAnsi(LabeledEdit2.Text) + '"');
     Add('/N"' + Utf8ToAnsi(LabeledEdit4.Text) + '"');
     Add('/P"' + Utf8ToAnsi(LabeledEdit5.Text) + '"');
@@ -341,6 +377,7 @@ begin
   begin
     Clear();
     Add('CONFIG');
+    Add('/DisableStartupMessages');
     Add('/F"' + Utf8ToAnsi(LabeledEdit2.Text) + '"');
     Add('/N"' + Utf8ToAnsi(LabeledEdit4.Text) + '"');
     Add('/P"' + Utf8ToAnsi(LabeledEdit5.Text) + '"');
@@ -358,6 +395,7 @@ begin
   begin
     Clear();
     Add('CONFIG');
+    Add('/DisableStartupMessages');
     Add('/F"' + Utf8ToAnsi(LabeledEdit2.Text) + '"');
     Add('/N"' + Utf8ToAnsi(LabeledEdit4.Text) + '"');
     Add('/P"' + Utf8ToAnsi(LabeledEdit5.Text) + '"');
@@ -374,6 +412,7 @@ begin
   begin
     Clear();
     Add('CONFIG');
+    Add('/DisableStartupMessages');
     Add('/F"' + Utf8ToAnsi(LabeledEdit2.Text) + '"');
     Add('/N"' + Utf8ToAnsi(LabeledEdit4.Text) + '"');
     Add('/P"' + Utf8ToAnsi(LabeledEdit5.Text) + '"');
@@ -392,6 +431,7 @@ begin
   begin
     Clear();
     Add('CONFIG');
+    Add('/DisableStartupMessages');
     Add('/F"' + Utf8ToAnsi(LabeledEdit2.Text) + '"');
     Add('/N"' + Utf8ToAnsi(LabeledEdit4.Text) + '"');
     Add('/P"' + Utf8ToAnsi(LabeledEdit5.Text) + '"');
@@ -535,6 +575,11 @@ end;
 procedure TForm1.MenuItem5Click(Sender: TObject);
 begin
   ListBox1.Items.Clear;
+end;
+
+procedure TForm1.MenuItem6Click(Sender: TObject);
+begin
+  MyThread := TMyThread.Create(ba_enterprise);
 end;
 
 procedure TForm1.MenuItem15Click(Sender: TObject);

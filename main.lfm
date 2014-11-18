@@ -240,6 +240,10 @@ object Form1: TForm1
     top = 240
     object MenuItem9: TMenuItem
       Caption = 'Информационная база'
+      object MenuItem6: TMenuItem
+        Caption = 'Запустить 1С'
+        OnClick = MenuItem6Click
+      end
       object MenuItem10: TMenuItem
         Caption = 'Выгрузить ИБ'
         OnClick = MenuItem10Click
