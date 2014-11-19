@@ -169,9 +169,8 @@ end;
 
 procedure TMyThread.Execute;
 var
-  i, progress, add: integer;
+  i, progress, totalTasks, currentTask: integer;
 begin
-  add := 4;
   Form1.SetComponentsEnabled(False);
   try
     try
@@ -186,14 +185,18 @@ begin
         case FBaseAction of
           ba_update:
           begin
+            currentTask := 0;
+            totalTasks := 4 + ListBox1.Count;
             if not dumpIB() then
               raise Exception.Create('Выгрузка информационной базы не выполнена!');
-            progress := 1 * 100 div (ListBox1.Count + add);
+            Inc(currentTask);
+            progress := currentTask * 100 div totalTasks;
             Form1.Caption := 'Идет обновление: ' + IntToStr(progress) + '%...';
 
             if not CheckAndRepair() then
               raise Exception.Create('Тестирование и исправление базы завершено с ошибкой!');
-            progress := 2 * 100 div (ListBox1.Count + add);
+            Inc(currentTask);
+            progress := currentTask * 100 div totalTasks;
             Form1.Caption := 'Идет обновление: ' + IntToStr(progress) + '%...';
 
             for i := 0 to ListBox1.Count - 1 do
@@ -201,13 +204,15 @@ begin
               AddLog(LogFile, 'Установка обновления: "' + ListBox1.Items[i] + '"');
               if not updateBase(ListBox1.Items[i], (i = ListBox1.Count - 1)) then
                 raise Exception.Create('Ошибка обновления!');
-              progress := (i + add - 1) * 100 div (ListBox1.Count + add);
+              Inc(currentTask);
+              progress := currentTask * 100 div totalTasks;
               Form1.Caption := 'Идет обновление: ' + IntToStr(progress) + '%...';
             end;
 
             if not runEnterprise() then
               raise Exception.Create('Запуск в режиме ENTERPRISE завершен с ошибкой!');
-            progress := (ListBox1.Count + add - 1) * 100 div (ListBox1.Count + add);
+            Inc(currentTask);
+            progress := currentTask * 100 div totalTasks;
             Form1.Caption := 'Идет обновление: ' + IntToStr(progress) + '%...';
 
             if not CheckAndRepair() then
