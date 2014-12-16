@@ -22,7 +22,7 @@ const
 
 type
 
-  TBaseAction = (ba_update, ba_dumpib, ba_restoreib, ba_dumpcfg, ba_loadcfg, ba_check, ba_enterprise);
+  TBaseAction = (ba_update, ba_dumpib, ba_restoreib, ba_dumpcfg, ba_loadcfg, ba_check, ba_enterprise, ba_config);
 
   TMyThread = class(TThread)
     FBaseAction: TBaseAction;
@@ -60,6 +60,7 @@ type
     MenuItem4: TMenuItem;
     MenuItem5: TMenuItem;
     MenuItem6: TMenuItem;
+    MenuItem7: TMenuItem;
     MenuItem9: TMenuItem;
     OpenDialog1: TOpenDialog;
     PopupMenu1: TPopupMenu;
@@ -84,6 +85,7 @@ type
     procedure MenuItem4Click(Sender: TObject);
     procedure MenuItem5Click(Sender: TObject);
     procedure MenuItem6Click(Sender: TObject);
+    procedure MenuItem7Click(Sender: TObject);
 
   private
     { private declarations }
@@ -94,6 +96,7 @@ type
     procedure SetComponentsEnabled(State: boolean);
     procedure CustomExceptionHandler(Sender: TObject; E: Exception);
     function runEnterprise(): boolean;
+    function runConfig(): boolean;
     function dumpIB(): boolean;
     function restoreIB(filename: string): boolean;
     function dumpCFG(): boolean;
@@ -275,6 +278,15 @@ begin
             Form1.Caption := 'Запуск в режиме ENTERPRISE успешно завершен!';
           end;
 
+          ba_config:
+          begin
+            AddLog(LogFile, 'Запуск в режиме конфигуратора');
+            Form1.Caption := 'Запуск в режиме конфигуратора...';
+            if not runConfig() then
+              raise Exception.Create('Запуск в режиме конфигуратора завершен с ошибкой!');
+            Form1.Caption := 'Запуск в режиме конфигуратора успешно завершен!';
+          end;
+
         end;
       end;
       MessageDlg(Form1.Caption, mtInformation, [mbOK], 0);
@@ -312,6 +324,22 @@ begin
   begin
     Clear();
     Add('ENTERPRISE');
+    Add('/DisableStartupMessages');
+    Add('/F"' + Utf8ToAnsi(LabeledEdit2.Text) + '"');
+    Add('/N"' + Utf8ToAnsi(LabeledEdit4.Text) + '"');
+    Add('/P"' + Utf8ToAnsi(LabeledEdit5.Text) + '"');
+    Add('/Out "' + Utf8ToAnsi(LogFile) + '" -NoTruncate');
+  end;
+  Process1.Execute;
+  Result := Process1.ExitStatus = 0;
+end;
+
+function TForm1.runConfig(): boolean;
+begin
+  with Process1.Parameters do
+  begin
+    Clear();
+    Add('CONFIG');
     Add('/DisableStartupMessages');
     Add('/F"' + Utf8ToAnsi(LabeledEdit2.Text) + '"');
     Add('/N"' + Utf8ToAnsi(LabeledEdit4.Text) + '"');
@@ -585,6 +613,11 @@ end;
 procedure TForm1.MenuItem6Click(Sender: TObject);
 begin
   MyThread := TMyThread.Create(ba_enterprise);
+end;
+
+procedure TForm1.MenuItem7Click(Sender: TObject);
+begin
+  MyThread := TMyThread.Create(ba_config);
 end;
 
 procedure TForm1.MenuItem15Click(Sender: TObject);

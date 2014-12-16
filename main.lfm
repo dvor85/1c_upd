@@ -244,6 +244,10 @@ object Form1: TForm1
         Caption = 'Запустить 1С'
         OnClick = MenuItem6Click
       end
+      object MenuItem7: TMenuItem
+        Caption = 'Запустить конфигуратор'
+        OnClick = MenuItem7Click
+      end
       object MenuItem10: TMenuItem
         Caption = 'Выгрузить ИБ'
         OnClick = MenuItem10Click
