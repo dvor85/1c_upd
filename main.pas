@@ -10,6 +10,7 @@ uses
   IniFiles;
 
 const
+  Version: string = '2.0.0';
   SectionMain: string = 'Main';
   KeyExecutable: string = 'Executable';
   SectionBase: string = 'Base';
@@ -549,6 +550,7 @@ begin
   finally
     list.Free;
   end;
+  AddLog(LogFile, ExtractFileName(ParamStr(0)) + ' started!');
 
 end;
 
@@ -663,6 +665,7 @@ end;
 procedure TForm1.MenuItem4Click(Sender: TObject);
 begin
   MessageDlg('Программа для пакетного обновления типовых конфигураций!' + #10#13 +
+    'Version: ' + Version + #10#13 +
     'Автор: Дмитрий Воротилин, dvor85@gmail.com',
     mtInformation, [mbOK], 0);
 end;
