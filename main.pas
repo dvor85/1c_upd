@@ -6,11 +6,11 @@ interface
 
 uses
   Classes, SysUtils, process, Forms, Controls, Dialogs,
-  ExtCtrls, StdCtrls, Buttons, Menus, CheckLst, ComCtrls,
-  IniFiles;
+  ExtCtrls, StdCtrls, Buttons, Menus, ComCtrls,
+  IniFiles, Windows, lazutf8;
 
 const
-  Version: string = '2.0.0';
+  Version: string = '2.1.0';
   SectionMain: string = 'Main';
   KeyExecutable: string = 'Executable';
   SectionBase: string = 'Base';
@@ -23,7 +23,8 @@ const
 
 type
 
-  TBaseAction = (ba_update, ba_dumpib, ba_restoreib, ba_dumpcfg, ba_loadcfg, ba_check, ba_enterprise, ba_config);
+  TBaseAction = (ba_update, ba_dumpib, ba_restoreib, ba_dumpcfg,
+    ba_loadcfg, ba_check, ba_enterprise, ba_config);
 
   TMyThread = class(TThread)
     FBaseAction: TBaseAction;
@@ -49,6 +50,7 @@ type
     LabeledEdit4: TLabeledEdit;
     LabeledEdit5: TLabeledEdit;
     MainMenu1: TMainMenu;
+    Memo1: TMemo;
     MenuItem1: TMenuItem;
     MenuItem10: TMenuItem;
     MenuItem11: TMenuItem;
@@ -62,11 +64,13 @@ type
     MenuItem5: TMenuItem;
     MenuItem6: TMenuItem;
     MenuItem7: TMenuItem;
+    MenuItem8: TMenuItem;
     MenuItem9: TMenuItem;
     OpenDialog1: TOpenDialog;
     PopupMenu1: TPopupMenu;
     Process1: TProcess;
     SelectDirectoryDialog1: TSelectDirectoryDialog;
+    Splitter1: TSplitter;
     StatusBar1: TStatusBar;
     procedure BitBtn1Click(Sender: TObject);
     procedure BitBtn2Click(Sender: TObject);
@@ -87,6 +91,7 @@ type
     procedure MenuItem5Click(Sender: TObject);
     procedure MenuItem6Click(Sender: TObject);
     procedure MenuItem7Click(Sender: TObject);
+    procedure MenuItem8Click(Sender: TObject);
 
   private
     { private declarations }
@@ -94,6 +99,7 @@ type
     LogFile: string;
     iniPath: string;
     ini: TIniFile;
+    procedure SaveSettings();
     procedure SetComponentsEnabled(State: boolean);
     procedure CustomExceptionHandler(Sender: TObject; E: Exception);
     function runEnterprise(): boolean;
@@ -151,6 +157,8 @@ begin
       StrPCopy(PStr, Str);
       F.Position := F.Size;
       F.Write(PStr^, LengthLogString);
+      Form1.Memo1.Lines.AddText(Str);
+      SendMessage(Form1.Memo1.Handle, EM_LINESCROLL, 0, Form1.Memo1.Lines.Count);
     except
       MessageDlg(Form1.Caption, LogString, mtError, [mbYes], 0);
       Exit;
@@ -174,6 +182,7 @@ end;
 procedure TMyThread.Execute;
 var
   i, progress, totalTasks, currentTask: integer;
+  msg: string;
 begin
   Form1.SetComponentsEnabled(False);
   try
@@ -181,10 +190,12 @@ begin
       with Form1 do
       begin
         if Process1.Running then
-          raise Exception.Create('Процесс уже запущен, дождитесь окончания!');
+          raise Exception.Create(
+            'Процесс уже запущен, дождитесь окончания!');
 
         if (Process1.Executable = '') or (LabeledEdit2.Text = '') then
-          raise Exception.Create('Не заполнены необходимые поля!');
+          raise Exception.Create(
+            'Не заполнены необходимые поля!');
 
         case FBaseAction of
           ba_update:
@@ -192,64 +203,83 @@ begin
             currentTask := 0;
             totalTasks := 4 + ListBox1.Count;
             if not dumpIB() then
-              raise Exception.Create('Выгрузка информационной базы не выполнена!');
+              raise Exception.Create(
+                'Выгрузка информационной базы не выполнена!');
             Inc(currentTask);
             progress := currentTask * 100 div totalTasks;
-            Form1.Caption := 'Идет обновление: ' + IntToStr(progress) + '%...';
+            Form1.Caption := 'Идет обновление: ' +
+              IntToStr(progress) + '%...';
 
             if not CheckAndRepair() then
-              raise Exception.Create('Тестирование и исправление базы завершено с ошибкой!');
+              raise Exception.Create(
+                'Тестирование и исправление базы завершено с ошибкой!');
             Inc(currentTask);
             progress := currentTask * 100 div totalTasks;
-            Form1.Caption := 'Идет обновление: ' + IntToStr(progress) + '%...';
+            Form1.Caption := 'Идет обновление: ' +
+              IntToStr(progress) + '%...';
 
             for i := 0 to ListBox1.Count - 1 do
             begin
-              AddLog(LogFile, 'Установка обновления: "' + ListBox1.Items[i] + '"');
+              AddLog(LogFile, 'Установка обновления: "' +
+                ListBox1.Items[i] + '"');
               if not updateBase(ListBox1.Items[i], (i = ListBox1.Count - 1)) then
                 raise Exception.Create('Ошибка обновления!');
               Inc(currentTask);
               progress := currentTask * 100 div totalTasks;
-              Form1.Caption := 'Идет обновление: ' + IntToStr(progress) + '%...';
+              Form1.Caption :=
+                'Идет обновление: ' + IntToStr(progress) + '%...';
             end;
 
             if not runEnterprise() then
-              raise Exception.Create('Запуск в режиме ENTERPRISE завершен с ошибкой!');
+              raise Exception.Create(
+                'Запуск в режиме ENTERPRISE завершен с ошибкой!');
             Inc(currentTask);
             progress := currentTask * 100 div totalTasks;
-            Form1.Caption := 'Идет обновление: ' + IntToStr(progress) + '%...';
+            Form1.Caption := 'Идет обновление: ' +
+              IntToStr(progress) + '%...';
 
             if not CheckAndRepair() then
-              raise Exception.Create('Тестирование и исправление базы завершено с ошибкой!');
+              raise Exception.Create(
+                'Тестирование и исправление базы завершено с ошибкой!');
 
             Form1.Caption := 'Обновление успешно завершено';
+            AddLog(LogFile, Form1.Caption);
           end;
 
           ba_dumpib:
           begin
-            AddLog(LogFile, 'Выгрузка информационной базы');
-            Form1.Caption := 'Идет выгрузка информационной базы...';
+            Form1.Caption :=
+              'Идет выгрузка информационной базы.';
+            AddLog(LogFile, Form1.Caption);
             if not dumpIB() then
-              raise Exception.Create('Выгрузка информационной базы не выполнена!');
-            Form1.Caption := 'Выгрузка информационной базы завершена!';
+              raise Exception.Create(
+                'Выгрузка информационной базы не выполнена!');
+            Form1.Caption :=
+              'Выгрузка информационной базы завершена!';
+            AddLog(LogFile, Form1.Caption);
           end;
 
           ba_restoreib:
           begin
-            AddLog(LogFile, 'Загрузка информационной базы');
-            Form1.Caption := 'Идет загрузка информационной базы...';
+            Form1.Caption :=
+              'Идет загрузка информационной базы.';
+            AddLog(LogFile, Form1.Caption);
             if not restoreIB(OpenDialog1.FileName) then
-              raise Exception.Create('Ошибка загрузки информационной базы!');
-            Form1.Caption := 'Загрузка информационной базы успешно завершено!';
+              raise Exception.Create(
+                'Ошибка загрузки информационной базы!');
+            Form1.Caption :=
+              'Загрузка информационной базы успешно завершено!';
+            AddLog(LogFile, Form1.Caption);
           end;
 
           ba_dumpcfg:
           begin
-            AddLog(LogFile, 'Выгрузка конфигурации');
-            Form1.Caption := 'Идет выгрузка конфигурации...';
+            Form1.Caption := 'Идет выгрузка конфигурации.';
+            AddLog(LogFile, Form1.Caption);
             if not dumpCFG() then
               raise Exception.Create('Кофигурация не выгружена!');
             Form1.Caption := 'Кофигурация успешно выгружена!';
+            AddLog(LogFile, Form1.Caption);
           end;
 
           ba_loadcfg:
@@ -257,35 +287,49 @@ begin
             AddLog(LogFile, 'Загрузка конфигурации');
             Form1.Caption := 'Идет загрузка конфигурации...';
             if not loadCFG(OpenDialog1.FileName) then
-              raise Exception.Create('Ошибка загрузки конфигурации!');
-            Form1.Caption := 'Загрузка конфигурации успешно завершено!';
+              raise Exception.Create(
+                'Ошибка загрузки конфигурации!');
+            Form1.Caption :=
+              'Загрузка конфигурации успешно завершено!';
+            AddLog(LogFile, Form1.Caption);
           end;
 
           ba_check:
           begin
-            AddLog(LogFile, 'Тестирование и исправление базы');
-            Form1.Caption := 'Идет тестирование и исправление базы...';
+            Form1.Caption :=
+              'Идет тестирование и исправление базы.';
+            AddLog(LogFile, Form1.Caption);
             if not CheckAndRepair() then
-              raise Exception.Create('Тестирование и исправление базы завершено с ошибкой!');
-            Form1.Caption := 'Тестирование и исправление базы успешно завершено!';
+              raise Exception.Create(
+                'Тестирование и исправление базы завершено с ошибкой!');
+            Form1.Caption :=
+              'Тестирование и исправление базы успешно завершено!';
+            AddLog(LogFile, Form1.Caption);
           end;
 
           ba_enterprise:
           begin
-            AddLog(LogFile, 'Запуск в режиме ENTERPRISE');
-            Form1.Caption := 'Запуск в режиме ENTERPRISE...';
+            Form1.Caption := 'Запуск в режиме ENTERPRISE.';
+            AddLog(LogFile, Form1.Caption);
             if not runEnterprise() then
-              raise Exception.Create('Запуск в режиме ENTERPRISE завершен с ошибкой!');
-            Form1.Caption := 'Запуск в режиме ENTERPRISE успешно завершен!';
+              raise Exception.Create(
+                'Запуск в режиме ENTERPRISE завершен с ошибкой!');
+            Form1.Caption :=
+              'Запуск в режиме ENTERPRISE успешно завершен!';
+            AddLog(LogFile, Form1.Caption);
           end;
 
           ba_config:
           begin
-            AddLog(LogFile, 'Запуск в режиме конфигуратора');
-            Form1.Caption := 'Запуск в режиме конфигуратора...';
+            Form1.Caption :=
+              'Запуск в режиме конфигуратора.';
+            AddLog(LogFile, Form1.Caption);
             if not runConfig() then
-              raise Exception.Create('Запуск в режиме конфигуратора завершен с ошибкой!');
-            Form1.Caption := 'Запуск в режиме конфигуратора успешно завершен!';
+              raise Exception.Create(
+                'Запуск в режиме конфигуратора завершен с ошибкой!');
+            Form1.Caption :=
+              'Запуск в режиме конфигуратора успешно завершен!';
+            AddLog(LogFile, Form1.Caption);
           end;
 
         end;
@@ -294,9 +338,10 @@ begin
     except
       on e: Exception do
       begin
-        AddLog(Form1.LogFile, e.message);
-        Form1.Caption := 'Операция завершена с ошибкой: "' + e.message + '". Проверьте ' +
-          ExtractFilePath(ParamStr(0)) + Form1.LogFile;
+        msg := e.message;
+        Form1.Caption := 'Операция завершена с ошибкой: "' +
+          msg + '". Проверьте ' + ExtractFilePath(ParamStr(0)) + Form1.LogFile;
+        AddLog(Form1.LogFile, Form1.Caption);
         MessageDlg(Form1.Caption, mtError, [mbOK], 0);
       end;
     end;
@@ -326,10 +371,10 @@ begin
     Clear();
     Add('ENTERPRISE');
     Add('/DisableStartupMessages');
-    Add('/F"' + Utf8ToAnsi(LabeledEdit2.Text) + '"');
-    Add('/N"' + Utf8ToAnsi(LabeledEdit4.Text) + '"');
-    Add('/P"' + Utf8ToAnsi(LabeledEdit5.Text) + '"');
-    Add('/Out "' + Utf8ToAnsi(LogFile) + '" -NoTruncate');
+    Add('/F"' + UTF8ToWinCP(LabeledEdit2.Text) + '"');
+    Add('/N"' + UTF8ToWinCP(LabeledEdit4.Text) + '"');
+    Add('/P"' + UTF8ToWinCP(LabeledEdit5.Text) + '"');
+    Add('/Out "' + UTF8ToWinCP(LogFile) + '" -NoTruncate');
   end;
   Process1.Execute;
   Result := Process1.ExitStatus = 0;
@@ -342,10 +387,10 @@ begin
     Clear();
     Add('CONFIG');
     Add('/DisableStartupMessages');
-    Add('/F"' + Utf8ToAnsi(LabeledEdit2.Text) + '"');
-    Add('/N"' + Utf8ToAnsi(LabeledEdit4.Text) + '"');
-    Add('/P"' + Utf8ToAnsi(LabeledEdit5.Text) + '"');
-    Add('/Out "' + Utf8ToAnsi(LogFile) + '" -NoTruncate');
+    Add('/F"' + Utf8ToWinCP(LabeledEdit2.Text) + '"');
+    Add('/N"' + Utf8ToWinCP(LabeledEdit4.Text) + '"');
+    Add('/P"' + Utf8ToWinCP(LabeledEdit5.Text) + '"');
+    Add('/Out "' + Utf8ToWinCP(LogFile) + '" -NoTruncate');
   end;
   Process1.Execute;
   Result := Process1.ExitStatus = 0;
@@ -358,11 +403,11 @@ begin
     Clear();
     Add('CONFIG');
     Add('/DisableStartupMessages');
-    Add('/F"' + Utf8ToAnsi(LabeledEdit2.Text) + '"');
-    Add('/N"' + Utf8ToAnsi(LabeledEdit4.Text) + '"');
-    Add('/P"' + Utf8ToAnsi(LabeledEdit5.Text) + '"');
-    Add('/RestoreIB"' + Utf8ToAnsi(filename) + '"');
-    Add('/Out "' + Utf8ToAnsi(LogFile) + '" -NoTruncate');
+    Add('/F"' + Utf8ToWinCP(LabeledEdit2.Text) + '"');
+    Add('/N"' + Utf8ToWinCP(LabeledEdit4.Text) + '"');
+    Add('/P"' + Utf8ToWinCP(LabeledEdit5.Text) + '"');
+    Add('/RestoreIB"' + Utf8ToWinCP(filename) + '"');
+    Add('/Out "' + Utf8ToWinCP(LogFile) + '" -NoTruncate');
   end;
   Process1.Execute;
   Result := Process1.ExitStatus = 0;
@@ -375,12 +420,12 @@ begin
     Clear();
     Add('CONFIG');
     Add('/DisableStartupMessages');
-    Add('/F"' + Utf8ToAnsi(LabeledEdit2.Text) + '"');
-    Add('/N"' + Utf8ToAnsi(LabeledEdit4.Text) + '"');
-    Add('/P"' + Utf8ToAnsi(LabeledEdit5.Text) + '"');
-    Add('/DumpIB"' + IncludeTrailingBackslash(Utf8ToAnsi(LabeledEdit1.Text)) +
+    Add('/F"' + Utf8ToWinCP(LabeledEdit2.Text) + '"');
+    Add('/N"' + Utf8ToWinCP(LabeledEdit4.Text) + '"');
+    Add('/P"' + Utf8ToWinCP(LabeledEdit5.Text) + '"');
+    Add('/DumpIB"' + IncludeTrailingBackslash(Utf8ToWinCP(LabeledEdit1.Text)) +
       FormatDateTime('dd.mm.yyyy_hh.nn.ss', Now()) + '.dt"');
-    Add('/Out "' + Utf8ToAnsi(LogFile) + '" -NoTruncate');
+    Add('/Out "' + Utf8ToWinCP(LogFile) + '" -NoTruncate');
   end;
   Process1.Execute;
   Result := Process1.ExitStatus = 0;
@@ -393,13 +438,13 @@ begin
     Clear();
     Add('CONFIG');
     Add('/DisableStartupMessages');
-    Add('/F"' + Utf8ToAnsi(LabeledEdit2.Text) + '"');
-    Add('/N"' + Utf8ToAnsi(LabeledEdit4.Text) + '"');
-    Add('/P"' + Utf8ToAnsi(LabeledEdit5.Text) + '"');
-    Add('/LoadCfg"' + Utf8ToAnsi(filename) + '"');
+    Add('/F"' + Utf8ToWinCP(LabeledEdit2.Text) + '"');
+    Add('/N"' + Utf8ToWinCP(LabeledEdit4.Text) + '"');
+    Add('/P"' + Utf8ToWinCP(LabeledEdit5.Text) + '"');
+    Add('/LoadCfg"' + Utf8ToWinCP(filename) + '"');
     if updateCfg then
       Add('/UpdateDBCfg');
-    Add('/Out "' + Utf8ToAnsi(LogFile) + '" -NoTruncate');
+    Add('/Out "' + Utf8ToWinCP(LogFile) + '" -NoTruncate');
   end;
   Process1.Execute;
   Result := Process1.ExitStatus = 0;
@@ -412,12 +457,12 @@ begin
     Clear();
     Add('CONFIG');
     Add('/DisableStartupMessages');
-    Add('/F"' + Utf8ToAnsi(LabeledEdit2.Text) + '"');
-    Add('/N"' + Utf8ToAnsi(LabeledEdit4.Text) + '"');
-    Add('/P"' + Utf8ToAnsi(LabeledEdit5.Text) + '"');
-    Add('/DumpCfg"' + IncludeTrailingBackslash(Utf8ToAnsi(LabeledEdit1.Text)) +
+    Add('/F"' + Utf8ToWinCP(LabeledEdit2.Text) + '"');
+    Add('/N"' + Utf8ToWinCP(LabeledEdit4.Text) + '"');
+    Add('/P"' + Utf8ToWinCP(LabeledEdit5.Text) + '"');
+    Add('/DumpCfg"' + IncludeTrailingBackslash(Utf8ToWinCP(LabeledEdit1.Text)) +
       FormatDateTime('dd.mm.yyyy_hh.nn.ss', Now()) + '.cf"');
-    Add('/Out "' + Utf8ToAnsi(LogFile) + '" -NoTruncate');
+    Add('/Out "' + Utf8ToWinCP(LogFile) + '" -NoTruncate');
   end;
   Process1.Execute;
   Result := Process1.ExitStatus = 0;
@@ -430,11 +475,11 @@ begin
     Clear();
     Add('CONFIG');
     Add('/DisableStartupMessages');
-    Add('/F"' + Utf8ToAnsi(LabeledEdit2.Text) + '"');
-    Add('/N"' + Utf8ToAnsi(LabeledEdit4.Text) + '"');
-    Add('/P"' + Utf8ToAnsi(LabeledEdit5.Text) + '"');
+    Add('/F"' + Utf8ToWinCP(LabeledEdit2.Text) + '"');
+    Add('/N"' + Utf8ToWinCP(LabeledEdit4.Text) + '"');
+    Add('/P"' + Utf8ToWinCP(LabeledEdit5.Text) + '"');
     Add('/IBCheckAndRepair -Rebuild -ReIndex -LogAndRefsIntegrity -RecalcTotals -IBCompression');
-    Add('/Out "' + Utf8ToAnsi(LogFile) + '" -NoTruncate');
+    Add('/Out "' + Utf8ToWinCP(LogFile) + '" -NoTruncate');
   end;
   Process1.Execute;
   Result := Process1.ExitStatus = 0;
@@ -447,13 +492,13 @@ begin
     Clear();
     Add('CONFIG');
     Add('/DisableStartupMessages');
-    Add('/F"' + Utf8ToAnsi(LabeledEdit2.Text) + '"');
-    Add('/N"' + Utf8ToAnsi(LabeledEdit4.Text) + '"');
-    Add('/P"' + Utf8ToAnsi(LabeledEdit5.Text) + '"');
-    Add('/UpdateCfg"' + Utf8ToAnsi(filename) + '"');
+    Add('/F"' + Utf8ToWinCP(LabeledEdit2.Text) + '"');
+    Add('/N"' + Utf8ToWinCP(LabeledEdit4.Text) + '"');
+    Add('/P"' + Utf8ToWinCP(LabeledEdit5.Text) + '"');
+    Add('/UpdateCfg"' + Utf8ToWinCP(filename) + '"');
     if updateCfg then
       Add('/UpdateDBCfg');
-    Add('/Out "' + Utf8ToAnsi(LogFile) + '" -NoTruncate');
+    Add('/Out "' + Utf8ToWinCP(LogFile) + '" -NoTruncate');
   end;
   Process1.Execute;
   Result := Process1.ExitStatus = 0;
@@ -466,11 +511,11 @@ begin
     Clear();
     Add('CONFIG');
     Add('/DisableStartupMessages');
-    Add('/F"' + Utf8ToAnsi(LabeledEdit2.Text) + '"');
-    Add('/N"' + Utf8ToAnsi(LabeledEdit4.Text) + '"');
-    Add('/P"' + Utf8ToAnsi(LabeledEdit5.Text) + '"');
+    Add('/F"' + Utf8ToWinCP(LabeledEdit2.Text) + '"');
+    Add('/N"' + Utf8ToWinCP(LabeledEdit4.Text) + '"');
+    Add('/P"' + Utf8ToWinCP(LabeledEdit5.Text) + '"');
     Add('/UpdateDBCfg');
-    Add('/Out "' + Utf8ToAnsi(LogFile) + '" -NoTruncate');
+    Add('/Out "' + Utf8ToWinCP(LogFile) + '" -NoTruncate');
   end;
   Process1.Execute;
   Result := Process1.ExitStatus = 0;
@@ -485,38 +530,51 @@ begin
   end;
 end;
 
-procedure TForm1.FormClose(Sender: TObject; var CloseAction: TCloseAction);
+procedure TForm1.SaveSettings();
 var
   i: integer;
 begin
-  if MessageDlg('Сохранить настройки?', mtConfirmation, mbYesNo, 0) = mrYes then
-  begin
-    ini.WriteString(SectionMain, KeyExecutable, LabeledEdit3.Text);
-    ini.WriteString(SectionBase, KeyBakcupPath, LabeledEdit1.Text);
-    ini.WriteString(SectionBase, KeyPath, LabeledEdit2.Text);
-    ini.WriteString(SectionBase, KeyUser, LabeledEdit4.Text);
-    ini.WriteString(SectionBase, KeyPass, EncodeStringBase64(LabeledEdit5.Text));
-    ini.EraseSection(SectionUpdates);
-    for i := 0 to ListBox1.Count - 1 do
-      ini.WriteString(SectionUpdates, IntToStr(i), ListBox1.Items[i]);
-    ini.Free;
-  end;
+  ini.WriteString(SectionMain, KeyExecutable, LabeledEdit3.Text);
+  ini.WriteString(SectionBase, KeyBakcupPath, LabeledEdit1.Text);
+  ini.WriteString(SectionBase, KeyPath, LabeledEdit2.Text);
+  ini.WriteString(SectionBase, KeyUser, LabeledEdit4.Text);
+  ini.WriteString(SectionBase, KeyPass, EncodeStringBase64(LabeledEdit5.Text));
+  ini.EraseSection(SectionUpdates);
+  for i := 0 to ListBox1.Count - 1 do
+    ini.WriteString(SectionUpdates, IntToStr(i), ListBox1.Items[i]);
 end;
+
+procedure TForm1.FormClose(Sender: TObject; var CloseAction: TCloseAction);
+begin
+  if MessageDlg('Сохранить настройки?', mtConfirmation,
+    mbYesNo, 0) = mrYes then
+  begin
+    SaveSettings();
+  end;
+  ini.Free;
+end;
+
+
 
 procedure TForm1.FormCloseQuery(Sender: TObject; var CanClose: boolean);
 begin
   if Process1.Running then
-    CanClose := (MessageDlg('Идет работа с базой данных. Вы действительно хотите закрыть программу?',
+    CanClose := (MessageDlg(
+      'Идет работа с базой данных. Вы действительно хотите закрыть программу?',
       mtWarning, mbYesNo, 0) = mrYes)
   else
     CanClose := True;
 end;
 
 procedure TForm1.CustomExceptionHandler(Sender: TObject; E: Exception);
+var
+  msg: string;
 begin
-  AddLog(LogFile, E.Message);
-  MessageDlg('Непредвиденная ошибка: "' + E.Message + '" .Проверьте ' +
-    ExtractFilePath(ParamStr(0)) + LogFile, mtError, [mbOK], 0);
+  msg := e.message;
+  AddLog(LogFile, msg);
+  MessageDlg('Непредвиденная ошибка: "' + msg +
+    '" .Проверьте ' + ExtractFilePath(ParamStr(0)) + LogFile,
+    mtError, [mbOK], 0);
 end;
 
 procedure TForm1.FormCreate(Sender: TObject);
@@ -622,6 +680,11 @@ begin
   MyThread := TMyThread.Create(ba_config);
 end;
 
+procedure TForm1.MenuItem8Click(Sender: TObject);
+begin
+  SaveSettings();
+end;
+
 procedure TForm1.MenuItem15Click(Sender: TObject);
 begin
   MyThread := TMyThread.Create(ba_update);
@@ -664,12 +727,11 @@ end;
 
 procedure TForm1.MenuItem4Click(Sender: TObject);
 begin
-  MessageDlg('Программа для пакетного обновления типовых конфигураций!' + #10#13 +
-    'Version: ' + Version + #10#13 +
+  MessageDlg('Программа для пакетного обновления типовых конфигураций!'
+    + #10#13 + 'Version: ' + Version + #10#13 +
     'Автор: Дмитрий Воротилин, dvor85@gmail.com',
     mtInformation, [mbOK], 0);
 end;
-
 
 
 
