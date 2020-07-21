@@ -6,11 +6,11 @@ interface
 
 uses
   Classes, SysUtils, process, Forms, Controls, Dialogs,
-  ExtCtrls, StdCtrls, Buttons, Menus, ComCtrls,
-  IniFiles, Windows, lazutf8;
+  ExtCtrls, StdCtrls, Buttons, Menus, ComCtrls, ActnList,
+  IniFiles, Windows, lazutf8, TypInfo;
 
 const
-  Version: string = '2.1.0';
+  Version: string = '2.2.0';
   SectionMain: string = 'Main';
   KeyExecutable: string = 'Executable';
   SectionBase: string = 'Base';
@@ -20,11 +20,12 @@ const
   KeyPass: string = 'Password';
   KeyLogFile: string = 'LogFile';
   SectionUpdates: string = 'Updates';
+  SectionMacro: string = 'Macro';
 
 type
 
   TBaseAction = (ba_update, ba_dumpib, ba_restoreib, ba_dumpcfg,
-    ba_loadcfg, ba_check, ba_enterprise, ba_config);
+    ba_loadcfg, ba_check, ba_enterprise, ba_config, ba_macro);
 
   TMyThread = class(TThread)
     FBaseAction: TBaseAction;
@@ -49,7 +50,13 @@ type
     LabeledEdit3: TLabeledEdit;
     LabeledEdit4: TLabeledEdit;
     LabeledEdit5: TLabeledEdit;
+    ListBox2: TListBox;
     MainMenu1: TMainMenu;
+    MenuItem26: TMenuItem;
+    MenuItem27: TMenuItem;
+    MenuItem28: TMenuItem;
+    MenuItem29: TMenuItem;
+    PopupMenu2: TPopupMenu;
     Memo1: TMemo;
     MenuItem1: TMenuItem;
     MenuItem10: TMenuItem;
@@ -58,7 +65,17 @@ type
     MenuItem13: TMenuItem;
     MenuItem14: TMenuItem;
     MenuItem15: TMenuItem;
+    MenuItem16: TMenuItem;
+    MenuItem17: TMenuItem;
+    MenuItem18: TMenuItem;
+    MenuItem19: TMenuItem;
     MenuItem2: TMenuItem;
+    MenuItem20: TMenuItem;
+    MenuItem21: TMenuItem;
+    MenuItem22: TMenuItem;
+    MenuItem23: TMenuItem;
+    MenuItem24: TMenuItem;
+    MenuItem25: TMenuItem;
     MenuItem3: TMenuItem;
     MenuItem4: TMenuItem;
     MenuItem5: TMenuItem;
@@ -71,7 +88,9 @@ type
     Process1: TProcess;
     SelectDirectoryDialog1: TSelectDirectoryDialog;
     Splitter1: TSplitter;
+    Splitter2: TSplitter;
     StatusBar1: TStatusBar;
+
     procedure BitBtn1Click(Sender: TObject);
     procedure BitBtn2Click(Sender: TObject);
     procedure BitBtn3Click(Sender: TObject);
@@ -84,7 +103,18 @@ type
     procedure MenuItem13Click(Sender: TObject);
     procedure MenuItem14Click(Sender: TObject);
     procedure MenuItem15Click(Sender: TObject);
+    procedure MenuItem17Click(Sender: TObject);
+    procedure MenuItem18Click(Sender: TObject);
+    procedure MenuItem19Click(Sender: TObject);
     procedure MenuItem1Click(Sender: TObject);
+    procedure MenuItem20Click(Sender: TObject);
+    procedure MenuItem21Click(Sender: TObject);
+    procedure MenuItem22Click(Sender: TObject);
+    procedure MenuItem24Click(Sender: TObject);
+    procedure MenuItem25Click(Sender: TObject);
+    procedure MenuItem27Click(Sender: TObject);
+    procedure MenuItem28Click(Sender: TObject);
+    procedure MenuItem29Click(Sender: TObject);
     procedure MenuItem2Click(Sender: TObject);
     procedure MenuItem3Click(Sender: TObject);
     procedure MenuItem4Click(Sender: TObject);
@@ -99,6 +129,8 @@ type
     LogFile: string;
     iniPath: string;
     ini: TIniFile;
+    currentTask: integer;
+    procedure ExecuteBaseAction(baseAction: TBaseAction);
     procedure SaveSettings();
     procedure SetComponentsEnabled(State: boolean);
     procedure CustomExceptionHandler(Sender: TObject; E: Exception);
@@ -179,12 +211,14 @@ begin
   FreeOnTerminate := True;
 end;
 
+
 procedure TMyThread.Execute;
 var
-  i, progress, totalTasks, currentTask: integer;
+  i, progress, totalTasks: integer;
   msg: string;
 begin
   Form1.SetComponentsEnabled(False);
+  progress := 0;
   try
     try
       with Form1 do
@@ -196,143 +230,23 @@ begin
         if (Process1.Executable = '') or (LabeledEdit2.Text = '') then
           raise Exception.Create(
             'Не заполнены необходимые поля!');
-
-        case FBaseAction of
-          ba_update:
+        if (FBaseAction = ba_macro) then
+        begin
+          currentTask := 0;
+          totalTasks := ListBox1.Count + ListBox2.Count;
+          if (ListBox2.Count < 1) then
+            raise Exception.Create(
+              'Действия для макроса не заполнены!');
+          for i := 0 to ListBox2.Count - 1 do
           begin
-            currentTask := 0;
-            totalTasks := 4 + ListBox1.Count;
-            if not dumpIB() then
-              raise Exception.Create(
-                'Выгрузка информационной базы не выполнена!');
+            Form1.Caption := Form1.Caption + IntToStr(progress) + '%...';
+            Form1.ExecuteBaseAction(TbaseAction(ListBox2.Items.Objects[i]));
             Inc(currentTask);
             progress := currentTask * 100 div totalTasks;
-            Form1.Caption := 'Идет обновление: ' +
-              IntToStr(progress) + '%...';
-
-            if not CheckAndRepair() then
-              raise Exception.Create(
-                'Тестирование и исправление базы завершено с ошибкой!');
-            Inc(currentTask);
-            progress := currentTask * 100 div totalTasks;
-            Form1.Caption := 'Идет обновление: ' +
-              IntToStr(progress) + '%...';
-
-            for i := 0 to ListBox1.Count - 1 do
-            begin
-              AddLog(LogFile, 'Установка обновления: "' +
-                ListBox1.Items[i] + '"');
-              if not updateBase(ListBox1.Items[i], (i = ListBox1.Count - 1)) then
-                raise Exception.Create('Ошибка обновления!');
-              Inc(currentTask);
-              progress := currentTask * 100 div totalTasks;
-              Form1.Caption :=
-                'Идет обновление: ' + IntToStr(progress) + '%...';
-            end;
-
-            if not runEnterprise() then
-              raise Exception.Create(
-                'Запуск в режиме ENTERPRISE завершен с ошибкой!');
-            Inc(currentTask);
-            progress := currentTask * 100 div totalTasks;
-            Form1.Caption := 'Идет обновление: ' +
-              IntToStr(progress) + '%...';
-
-            if not CheckAndRepair() then
-              raise Exception.Create(
-                'Тестирование и исправление базы завершено с ошибкой!');
-
-            Form1.Caption := 'Обновление успешно завершено';
-            AddLog(LogFile, Form1.Caption);
           end;
-
-          ba_dumpib:
-          begin
-            Form1.Caption :=
-              'Идет выгрузка информационной базы.';
-            AddLog(LogFile, Form1.Caption);
-            if not dumpIB() then
-              raise Exception.Create(
-                'Выгрузка информационной базы не выполнена!');
-            Form1.Caption :=
-              'Выгрузка информационной базы завершена!';
-            AddLog(LogFile, Form1.Caption);
-          end;
-
-          ba_restoreib:
-          begin
-            Form1.Caption :=
-              'Идет загрузка информационной базы.';
-            AddLog(LogFile, Form1.Caption);
-            if not restoreIB(OpenDialog1.FileName) then
-              raise Exception.Create(
-                'Ошибка загрузки информационной базы!');
-            Form1.Caption :=
-              'Загрузка информационной базы успешно завершено!';
-            AddLog(LogFile, Form1.Caption);
-          end;
-
-          ba_dumpcfg:
-          begin
-            Form1.Caption := 'Идет выгрузка конфигурации.';
-            AddLog(LogFile, Form1.Caption);
-            if not dumpCFG() then
-              raise Exception.Create('Кофигурация не выгружена!');
-            Form1.Caption := 'Кофигурация успешно выгружена!';
-            AddLog(LogFile, Form1.Caption);
-          end;
-
-          ba_loadcfg:
-          begin
-            AddLog(LogFile, 'Загрузка конфигурации');
-            Form1.Caption := 'Идет загрузка конфигурации...';
-            if not loadCFG(OpenDialog1.FileName) then
-              raise Exception.Create(
-                'Ошибка загрузки конфигурации!');
-            Form1.Caption :=
-              'Загрузка конфигурации успешно завершено!';
-            AddLog(LogFile, Form1.Caption);
-          end;
-
-          ba_check:
-          begin
-            Form1.Caption :=
-              'Идет тестирование и исправление базы.';
-            AddLog(LogFile, Form1.Caption);
-            if not CheckAndRepair() then
-              raise Exception.Create(
-                'Тестирование и исправление базы завершено с ошибкой!');
-            Form1.Caption :=
-              'Тестирование и исправление базы успешно завершено!';
-            AddLog(LogFile, Form1.Caption);
-          end;
-
-          ba_enterprise:
-          begin
-            Form1.Caption := 'Запуск в режиме ENTERPRISE.';
-            AddLog(LogFile, Form1.Caption);
-            if not runEnterprise() then
-              raise Exception.Create(
-                'Запуск в режиме ENTERPRISE завершен с ошибкой!');
-            Form1.Caption :=
-              'Запуск в режиме ENTERPRISE успешно завершен!';
-            AddLog(LogFile, Form1.Caption);
-          end;
-
-          ba_config:
-          begin
-            Form1.Caption :=
-              'Запуск в режиме конфигуратора.';
-            AddLog(LogFile, Form1.Caption);
-            if not runConfig() then
-              raise Exception.Create(
-                'Запуск в режиме конфигуратора завершен с ошибкой!');
-            Form1.Caption :=
-              'Запуск в режиме конфигуратора успешно завершен!';
-            AddLog(LogFile, Form1.Caption);
-          end;
-
-        end;
+        end
+        else
+          Form1.ExecuteBaseAction(FBaseAction);
       end;
       MessageDlg(Form1.Caption, mtInformation, [mbOK], 0);
     except
@@ -351,6 +265,112 @@ begin
   end;
 end;
 
+
+procedure TForm1.ExecuteBaseAction(baseAction: TBaseAction);
+var
+  i: integer;
+begin
+  case baseAction of
+    ba_update:
+    begin
+      for i := 0 to ListBox1.Count - 1 do
+      begin
+        AddLog(LogFile, 'Установка обновления: "' +
+          ListBox1.Items[i] + '"');
+        if not updateBase(ListBox1.Items[i], (i = ListBox1.Count - 1)) then
+          raise Exception.Create('Ошибка обновления!');
+        Inc(currentTask);
+      end;
+    end;
+    ba_dumpib:
+    begin
+      Caption :=
+        'Идет выгрузка информационной базы.';
+      AddLog(LogFile, Caption);
+      if not dumpIB() then
+        raise Exception.Create(
+          'Выгрузка информационной базы не выполнена!');
+      Caption :=
+        'Выгрузка информационной базы завершена!';
+      AddLog(LogFile, Caption);
+    end;
+
+    ba_restoreib:
+    begin
+      Caption :=
+        'Идет загрузка информационной базы.';
+      AddLog(LogFile, Caption);
+      if not restoreIB(OpenDialog1.FileName) then
+        raise Exception.Create(
+          'Ошибка загрузки информационной базы!');
+      Caption :=
+        'Загрузка информационной базы успешно завершено!';
+      AddLog(LogFile, Caption);
+    end;
+
+    ba_dumpcfg:
+    begin
+      Caption := 'Идет выгрузка конфигурации.';
+      AddLog(LogFile, Caption);
+      if not dumpCFG() then
+        raise Exception.Create('Кофигурация не выгружена!');
+      Caption := 'Кофигурация успешно выгружена!';
+      AddLog(LogFile, Caption);
+    end;
+
+    ba_loadcfg:
+    begin
+      AddLog(LogFile, 'Загрузка конфигурации');
+      Caption := 'Идет загрузка конфигурации...';
+      if not loadCFG(OpenDialog1.FileName) then
+        raise Exception.Create(
+          'Ошибка загрузки конфигурации!');
+      Caption :=
+        'Загрузка конфигурации успешно завершено!';
+      AddLog(LogFile, Caption);
+    end;
+
+    ba_check:
+    begin
+      Caption :=
+        'Идет тестирование и исправление базы.';
+      AddLog(LogFile, Caption);
+      if not CheckAndRepair() then
+        raise Exception.Create(
+          'Тестирование и исправление базы завершено с ошибкой!');
+      Caption :=
+        'Тестирование и исправление базы успешно завершено!';
+      AddLog(LogFile, Caption);
+    end;
+
+    ba_enterprise:
+    begin
+      Caption := 'Запуск в режиме ENTERPRISE.';
+      AddLog(LogFile, Caption);
+      if not runEnterprise() then
+        raise Exception.Create(
+          'Запуск в режиме ENTERPRISE завершен с ошибкой!');
+      Caption :=
+        'Запуск в режиме ENTERPRISE успешно завершен!';
+      AddLog(LogFile, Caption);
+    end;
+
+    ba_config:
+    begin
+      Caption :=
+        'Запуск в режиме конфигуратора.';
+      AddLog(LogFile, Caption);
+      if not runConfig() then
+        raise Exception.Create(
+          'Запуск в режиме конфигуратора завершен с ошибкой!');
+      Caption :=
+        'Запуск в режиме конфигуратора успешно завершен!';
+      AddLog(LogFile, Caption);
+    end;
+
+  end;
+end;
+
 procedure TForm1.SetComponentsEnabled(State: boolean);
 begin
   LabeledEdit1.Enabled := State;
@@ -362,6 +382,7 @@ begin
   BitBtn2.Enabled := State;
   BitBtn3.Enabled := State;
   ListBox1.Enabled := State;
+  ListBox2.Enabled := State;
 end;
 
 function TForm1.runEnterprise(): boolean;
@@ -398,6 +419,7 @@ end;
 
 function TForm1.restoreIB(filename: string): boolean;
 begin
+  AddLog(LogFile, filename);
   with Process1.Parameters do
   begin
     Clear();
@@ -414,7 +436,12 @@ begin
 end;
 
 function TForm1.dumpIB(): boolean;
+var
+  fn: string;
 begin
+  fn := IncludeTrailingBackslash(ExpandFileName(LabeledEdit1.Text)) +
+    FormatDateTime('dd.mm.yyyy_hh.nn.ss', Now()) + '.dt';
+  AddLog(LogFile, fn);
   with Process1.Parameters do
   begin
     Clear();
@@ -423,16 +450,17 @@ begin
     Add('/F"' + Utf8ToWinCP(LabeledEdit2.Text) + '"');
     Add('/N"' + Utf8ToWinCP(LabeledEdit4.Text) + '"');
     Add('/P"' + Utf8ToWinCP(LabeledEdit5.Text) + '"');
-    Add('/DumpIB"' + IncludeTrailingBackslash(Utf8ToWinCP(LabeledEdit1.Text)) +
-      FormatDateTime('dd.mm.yyyy_hh.nn.ss', Now()) + '.dt"');
+    Add('/DumpIB"' + Utf8ToWinCP(fn) + '"');
     Add('/Out "' + Utf8ToWinCP(LogFile) + '" -NoTruncate');
   end;
   Process1.Execute;
   Result := Process1.ExitStatus = 0;
+
 end;
 
 function TForm1.loadCFG(filename: string; updateCfg: boolean = True): boolean;
 begin
+  AddLog(LogFile, filename);
   with Process1.Parameters do
   begin
     Clear();
@@ -451,7 +479,12 @@ begin
 end;
 
 function TForm1.dumpCFG(): boolean;
+var
+  fn: string;
 begin
+  fn := IncludeTrailingBackslash(ExpandFileName(LabeledEdit1.Text)) +
+    FormatDateTime('dd.mm.yyyy_hh.nn.ss', Now()) + '.cf';
+  AddLog(LogFile, fn);
   with Process1.Parameters do
   begin
     Clear();
@@ -460,8 +493,7 @@ begin
     Add('/F"' + Utf8ToWinCP(LabeledEdit2.Text) + '"');
     Add('/N"' + Utf8ToWinCP(LabeledEdit4.Text) + '"');
     Add('/P"' + Utf8ToWinCP(LabeledEdit5.Text) + '"');
-    Add('/DumpCfg"' + IncludeTrailingBackslash(Utf8ToWinCP(LabeledEdit1.Text)) +
-      FormatDateTime('dd.mm.yyyy_hh.nn.ss', Now()) + '.cf"');
+    Add('/DumpCfg"' + Utf8ToWinCP(fn) + '"');
     Add('/Out "' + Utf8ToWinCP(LogFile) + '" -NoTruncate');
   end;
   Process1.Execute;
@@ -542,6 +574,10 @@ begin
   ini.EraseSection(SectionUpdates);
   for i := 0 to ListBox1.Count - 1 do
     ini.WriteString(SectionUpdates, IntToStr(i), ListBox1.Items[i]);
+  ini.EraseSection(SectionMacro);
+  for i := 0 to ListBox2.Count - 1 do
+    ini.WriteString(SectionMacro, IntToStr(Ord(TBaseAction(ListBox2.Items.Objects[i]))),
+      ListBox2.Items[i]);
 end;
 
 procedure TForm1.FormClose(Sender: TObject; var CloseAction: TCloseAction);
@@ -606,6 +642,14 @@ begin
     for i := 0 to list.Count - 1 do
       ListBox1.Items.Add(list.ValueFromIndex[i]);
   finally
+    list.Clear;
+  end;
+  try
+    ini.ReadSectionValues(SectionMacro, list);
+    for i := 0 to list.Count - 1 do
+      ListBox2.AddItem(list.ValueFromIndex[i],
+        TObject(TBaseAction(StrToInt(list.Names[i]))));
+  finally
     list.Free;
   end;
   AddLog(LogFile, ExtractFileName(ParamStr(0)) + ' started!');
@@ -618,6 +662,8 @@ begin
     Process1.Executable := LabeledEdit3.Text;
 end;
 
+
+
 procedure TForm1.BitBtn1Click(Sender: TObject);
 begin
   SelectDirectoryDialog1.InitialDir := LabeledEdit2.Text;
@@ -626,6 +672,8 @@ begin
     LabeledEdit2.Text := SelectDirectoryDialog1.FileName;
   end;
 end;
+
+
 
 procedure TForm1.BitBtn2Click(Sender: TObject);
 begin
@@ -652,6 +700,81 @@ begin
     else
       ListBox1.Items.Add(OpenDialog1.FileName);
   end;
+end;
+
+procedure TForm1.MenuItem20Click(Sender: TObject);
+var
+  k: integer;
+begin
+  k := ListBox2.ItemIndex;
+  if (k > -1) then
+    ListBox2.Items.InsertObject(k, TMenuItem(Sender).Caption, TObject(ba_restoreib))
+  else
+    ListBox2.AddItem(TMenuItem(Sender).Caption, TObject(ba_restoreib));
+end;
+
+procedure TForm1.MenuItem21Click(Sender: TObject);
+var
+  k: integer;
+begin
+  k := ListBox2.ItemIndex;
+  if (k > -1) then
+    ListBox2.Items.InsertObject(k, TMenuItem(Sender).Caption, TObject(ba_update))
+  else
+    ListBox2.AddItem(TMenuItem(Sender).Caption, TObject(ba_update));
+end;
+
+procedure TForm1.MenuItem22Click(Sender: TObject);
+var
+  k: integer;
+begin
+  k := ListBox2.ItemIndex;
+  if (k > -1) then
+    ListBox2.Items.InsertObject(k, TMenuItem(Sender).Caption, TObject(ba_check))
+  else
+    ListBox2.AddItem(TMenuItem(Sender).Caption, TObject(ba_check));
+end;
+
+procedure TForm1.MenuItem24Click(Sender: TObject);
+var
+  k: integer;
+begin
+  k := ListBox2.ItemIndex;
+  if (k > -1) then
+    ListBox2.Items.InsertObject(k, TMenuItem(Sender).Caption, TObject(ba_dumpcfg))
+  else
+    ListBox2.AddItem(TMenuItem(Sender).Caption, TObject(ba_dumpcfg));
+end;
+
+procedure TForm1.MenuItem25Click(Sender: TObject);
+var
+  k: integer;
+begin
+  k := ListBox2.ItemIndex;
+  if (k > -1) then
+    ListBox2.Items.InsertObject(k, TMenuItem(Sender).Caption, TObject(ba_loadcfg))
+  else
+    ListBox2.AddItem(TMenuItem(Sender).Caption, TObject(ba_loadcfg));
+end;
+
+procedure TForm1.MenuItem27Click(Sender: TObject);
+begin
+  MyThread := TMyThread.Create(ba_macro);
+end;
+
+procedure TForm1.MenuItem28Click(Sender: TObject);
+var
+  k: integer;
+begin
+  k := ListBox2.ItemIndex;
+  if k < 0 then
+    exit;
+  ListBox2.Items.Delete(k);
+end;
+
+procedure TForm1.MenuItem29Click(Sender: TObject);
+begin
+  ListBox2.Items.Clear;
 end;
 
 procedure TForm1.MenuItem2Click(Sender: TObject);
@@ -688,6 +811,41 @@ end;
 procedure TForm1.MenuItem15Click(Sender: TObject);
 begin
   MyThread := TMyThread.Create(ba_update);
+end;
+
+
+
+procedure TForm1.MenuItem17Click(Sender: TObject);
+var
+  k: integer;
+begin
+  k := ListBox2.ItemIndex;
+  if (k > -1) then
+    ListBox2.Items.InsertObject(k, TMenuItem(Sender).Caption, TObject(ba_enterprise))
+  else
+    ListBox2.AddItem(TMenuItem(Sender).Caption, TObject(ba_enterprise));
+end;
+
+procedure TForm1.MenuItem18Click(Sender: TObject);
+var
+  k: integer;
+begin
+  k := ListBox2.ItemIndex;
+  if (k > -1) then
+    ListBox2.Items.InsertObject(k, TMenuItem(Sender).Caption, TObject(ba_config))
+  else
+    ListBox2.AddItem(TMenuItem(Sender).Caption, TObject(ba_config));
+end;
+
+procedure TForm1.MenuItem19Click(Sender: TObject);
+var
+  k: integer;
+begin
+  k := ListBox2.ItemIndex;
+  if (k > -1) then
+    ListBox2.Items.InsertObject(k, TMenuItem(Sender).Caption, TObject(ba_dumpib))
+  else
+    ListBox2.AddItem(TMenuItem(Sender).Caption, TObject(ba_dumpib));
 end;
 
 procedure TForm1.MenuItem10Click(Sender: TObject);
