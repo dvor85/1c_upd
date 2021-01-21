@@ -382,6 +382,7 @@ begin
     Clear();
     Add('ENTERPRISE');
     Add('/DisableStartupMessages');
+    Add('/DisableSplash');
     Add('/F"' + UTF8ToWinCP(LabeledEdit2.Text) + '"');
     Add('/N"' + UTF8ToWinCP(LabeledEdit4.Text) + '"');
     Add('/P"' + UTF8ToWinCP(LabeledEdit5.Text) + '"');
@@ -396,8 +397,9 @@ begin
   with Process1.Parameters do
   begin
     Clear();
-    Add('CONFIG');
+    Add('DESIGNER');
     Add('/DisableStartupMessages');
+    Add('/DisableSplash');
     Add('/F"' + Utf8ToWinCP(LabeledEdit2.Text) + '"');
     Add('/N"' + Utf8ToWinCP(LabeledEdit4.Text) + '"');
     Add('/P"' + Utf8ToWinCP(LabeledEdit5.Text) + '"');
@@ -412,8 +414,10 @@ begin
   with Process1.Parameters do
   begin
     Clear();
-    Add('CONFIG');
+    Add('DESIGNER');
     Add('/DisableStartupMessages');
+    Add('/DisableStartupDialogs');
+    Add('/DisableSplash');
     Add('/F"' + Utf8ToWinCP(LabeledEdit2.Text) + '"');
     Add('/N"' + Utf8ToWinCP(LabeledEdit4.Text) + '"');
     Add('/P"' + Utf8ToWinCP(LabeledEdit5.Text) + '"');
@@ -429,12 +433,15 @@ var
   fn: string;
 begin
   fn := IncludeTrailingBackslash(ExpandFileName(LabeledEdit1.Text)) + FormatDateTime('dd.mm.yyyy_hh.nn.ss', Now()) + '.dt';
+  ForceDirectories(ExtractFileDir(fn));
   AddLog(LogFile, fn);
   with Process1.Parameters do
   begin
     Clear();
-    Add('CONFIG');
+    Add('DESIGNER');
     Add('/DisableStartupMessages');
+    Add('/DisableStartupDialogs');
+    Add('/DisableSplash');
     Add('/F"' + Utf8ToWinCP(LabeledEdit2.Text) + '"');
     Add('/N"' + Utf8ToWinCP(LabeledEdit4.Text) + '"');
     Add('/P"' + Utf8ToWinCP(LabeledEdit5.Text) + '"');
@@ -451,8 +458,10 @@ begin
   with Process1.Parameters do
   begin
     Clear();
-    Add('CONFIG');
+    Add('DESIGNER');
     Add('/DisableStartupMessages');
+    Add('/DisableStartupDialogs');
+    Add('/DisableSplash');
     Add('/F"' + Utf8ToWinCP(LabeledEdit2.Text) + '"');
     Add('/N"' + Utf8ToWinCP(LabeledEdit4.Text) + '"');
     Add('/P"' + Utf8ToWinCP(LabeledEdit5.Text) + '"');
@@ -474,8 +483,10 @@ begin
   with Process1.Parameters do
   begin
     Clear();
-    Add('CONFIG');
+    Add('DESIGNER');
     Add('/DisableStartupMessages');
+    Add('/DisableStartupDialogs');
+    Add('/DisableSplash');
     Add('/F"' + Utf8ToWinCP(LabeledEdit2.Text) + '"');
     Add('/N"' + Utf8ToWinCP(LabeledEdit4.Text) + '"');
     Add('/P"' + Utf8ToWinCP(LabeledEdit5.Text) + '"');
@@ -491,8 +502,10 @@ begin
   with Process1.Parameters do
   begin
     Clear();
-    Add('CONFIG');
+    Add('DESIGNER');
     Add('/DisableStartupMessages');
+    Add('/DisableStartupDialogs');
+    Add('/DisableSplash');
     Add('/F"' + Utf8ToWinCP(LabeledEdit2.Text) + '"');
     Add('/N"' + Utf8ToWinCP(LabeledEdit4.Text) + '"');
     Add('/P"' + Utf8ToWinCP(LabeledEdit5.Text) + '"');
@@ -508,8 +521,10 @@ begin
   with Process1.Parameters do
   begin
     Clear();
-    Add('CONFIG');
+    Add('DESIGNER');
     Add('/DisableStartupMessages');
+    Add('/DisableStartupDialogs');
+    Add('/DisableSplash');
     Add('/F"' + Utf8ToWinCP(LabeledEdit2.Text) + '"');
     Add('/N"' + Utf8ToWinCP(LabeledEdit4.Text) + '"');
     Add('/P"' + Utf8ToWinCP(LabeledEdit5.Text) + '"');
@@ -527,8 +542,10 @@ begin
   with Process1.Parameters do
   begin
     Clear();
-    Add('CONFIG');
+    Add('DESIGNER');
     Add('/DisableStartupMessages');
+    Add('/DisableStartupDialogs');
+    Add('/DisableSplash');
     Add('/F"' + Utf8ToWinCP(LabeledEdit2.Text) + '"');
     Add('/N"' + Utf8ToWinCP(LabeledEdit4.Text) + '"');
     Add('/P"' + Utf8ToWinCP(LabeledEdit5.Text) + '"');
