@@ -6,16 +6,17 @@ interface
 
 uses
   Classes, SysUtils, process, Forms, Controls, Dialogs,
-  ExtCtrls, StdCtrls, Buttons, Menus, ComCtrls, ActnList,
+  ExtCtrls, StdCtrls, Buttons, Menus, ComCtrls, ActnList, Spin, FileUtil,
   IniFiles, Windows, lazutf8, TypInfo;
 
 const
-  Version: string = '2.2.1';
+  Version: string = '2.2.2';
   SectionMain: string = 'Main';
   KeyExecutable: string = 'Executable';
   SectionBase: string = 'Base';
   KeyPath: string = 'Path';
   KeyBakcupPath: string = 'BakcupPath';
+  KeyBackupCount: string = 'BakcupCount';
   KeyUser: string = 'User';
   KeyPass: string = 'Password';
   KeyLogFile: string = 'LogFile';
@@ -41,6 +42,8 @@ type
     BitBtn1: TBitBtn;
     BitBtn2: TBitBtn;
     BitBtn3: TBitBtn;
+    GroupBox4: TGroupBox;
+    Label1: TLabel;
     ListBox1: TListBox;
     GroupBox1: TGroupBox;
     GroupBox2: TGroupBox;
@@ -87,6 +90,7 @@ type
     PopupMenu1: TPopupMenu;
     Process1: TProcess;
     SelectDirectoryDialog1: TSelectDirectoryDialog;
+    SpinEdit1: TSpinEdit;
     Splitter1: TSplitter;
     Splitter2: TSplitter;
     StatusBar1: TStatusBar;
@@ -198,6 +202,32 @@ begin
   end;
 end;
 
+function SortByCTime(List: TStringList; Index1, Index2: integer): integer;
+begin
+  Result := FileAge(List[index2]) - FileAge(List[index1]);
+end;
+
+procedure DeleteOld(dir, mask: string; needed: integer);
+//Удалить старые архивы
+var
+  flist: TStringList;
+  i: integer;
+begin
+  flist := TStringList.Create;
+  try
+    FindAllFiles(flist, dir, mask, False);
+    flist.CustomSort(@SortByCTime);
+    for i := needed to flist.Count - 1 do
+    begin
+      if DeleteFile(PChar(flist[i])) then
+        AddLog(Form1.LogFile, 'Удаление устаревшего: "' + flist[i] + '"');
+    end;
+  finally
+    flist.Free;
+  end;
+end;
+
+
 { TForm1 }
 
 
@@ -296,6 +326,7 @@ begin
         raise Exception.Create('Выгрузка информационной базы не выполнена!');
       Caption := 'Выгрузка информационной базы завершена!';
       AddLog(LogFile, Caption);
+      DeleteOld(IncludeTrailingBackslash(ExpandFileName(LabeledEdit1.Text)), '*.dt', SpinEdit1.Value);
     end;
 
     ba_restoreib:
@@ -316,6 +347,7 @@ begin
         raise Exception.Create('Кофигурация не выгружена!');
       Caption := 'Кофигурация успешно выгружена!';
       AddLog(LogFile, Caption);
+      DeleteOld(IncludeTrailingBackslash(ExpandFileName(LabeledEdit1.Text)), '*.cf', SpinEdit1.Value);
     end;
 
     ba_loadcfg:
@@ -373,6 +405,7 @@ begin
   BitBtn3.Enabled := State;
   ListBox1.Enabled := State;
   ListBox2.Enabled := State;
+  SpinEdit1.Enabled := State;
 end;
 
 function TForm1.runEnterprise(): boolean;
@@ -394,6 +427,7 @@ end;
 
 function TForm1.runConfig(): boolean;
 begin
+
   with Process1.Parameters do
   begin
     Clear();
@@ -407,6 +441,7 @@ begin
   end;
   Process1.Execute;
   Result := Process1.ExitStatus = 0;
+
 end;
 
 function TForm1.restoreIB(filename: string): boolean;
@@ -428,13 +463,16 @@ begin
   Result := Process1.ExitStatus = 0;
 end;
 
+
 function TForm1.dumpIB(): boolean;
 var
   fn: string;
+
 begin
   fn := IncludeTrailingBackslash(ExpandFileName(LabeledEdit1.Text)) + FormatDateTime('dd.mm.yyyy_hh.nn.ss', Now()) + '.dt';
   ForceDirectories(ExtractFileDir(fn));
   AddLog(LogFile, fn);
+
   with Process1.Parameters do
   begin
     Clear();
@@ -450,7 +488,6 @@ begin
   end;
   Process1.Execute;
   Result := Process1.ExitStatus = 0;
-
 end;
 
 function TForm1.loadCFG(filename: string; updateCfg: boolean = True): boolean;
@@ -574,6 +611,7 @@ begin
   ini.WriteString(SectionBase, KeyPath, LabeledEdit2.Text);
   ini.WriteString(SectionBase, KeyUser, LabeledEdit4.Text);
   ini.WriteString(SectionBase, KeyPass, EncodeStringBase64(LabeledEdit5.Text));
+  ini.WriteInteger(SectionBase, KeyBackupCount, SpinEdit1.Value);
   ini.EraseSection(SectionUpdates);
   for i := 0 to ListBox1.Count - 1 do
     ini.WriteString(SectionUpdates, IntToStr(i), ListBox1.Items[i]);
@@ -631,6 +669,7 @@ begin
   LabeledEdit3.Text := ini.ReadString(SectionMain, KeyExecutable, '');
   LogFile := ini.ReadString(SectionMain, KeyLogFile, 'logs\' + ChangeFileExt(ExtractFileName(iniPath), '.log'));
   LabeledEdit1.Text := ini.ReadString(SectionBase, KeyBakcupPath, '');
+  SpinEdit1.Value := ini.ReadInteger(SectionBase, KeyBackupCount, 3);
   LabeledEdit2.Text := ini.ReadString(SectionBase, KeyPath, '');
   LabeledEdit4.Text := ini.ReadString(SectionBase, KeyUser, '');
   try
@@ -896,6 +935,8 @@ begin
     #10#13 + 'Version: ' + Version + #10#13 + 'Автор: Дмитрий Воротилин, dvor85@gmail.com',
     mtInformation, [mbOK], 0);
 end;
+
+
 
 
 
