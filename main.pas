@@ -26,7 +26,7 @@ const
 type
 
   TBaseAction = (ba_update, ba_dumpib, ba_restoreib, ba_dumpcfg,
-    ba_loadcfg, ba_check, ba_enterprise, ba_config, ba_macro);
+    ba_loadcfg, ba_check, ba_enterprise, ba_config, ba_cache, ba_macro);
 
   TMyThread = class(TThread)
     FBaseAction: TBaseAction;
@@ -60,6 +60,8 @@ type
     MenuItem27: TMenuItem;
     MenuItem28: TMenuItem;
     MenuItem29: TMenuItem;
+    MenuItem30: TMenuItem;
+    MenuItem31: TMenuItem;
     PopupMenu2: TPopupMenu;
     Memo1: TMemo;
     MenuItem1: TMenuItem;
@@ -121,6 +123,8 @@ type
     procedure MenuItem28Click(Sender: TObject);
     procedure MenuItem29Click(Sender: TObject);
     procedure MenuItem2Click(Sender: TObject);
+    procedure MenuItem30Click(Sender: TObject);
+    procedure MenuItem31Click(Sender: TObject);
     procedure MenuItem3Click(Sender: TObject);
     procedure MenuItem4Click(Sender: TObject);
     procedure MenuItem5Click(Sender: TObject);
@@ -149,6 +153,7 @@ type
     function CheckAndRepair(param: string): boolean;
     function updateBase(filename: string; updateCfg: boolean = False): boolean;
     function updateCFG(): boolean;
+    function ClearCache(): boolean;
   public
     { public declarations }
   end;
@@ -397,6 +402,14 @@ begin
       Caption := Caption + ' успешно завершен!';
       AddLog(LogFile, Caption);
     end;
+    ba_cache:
+    begin
+      Caption := 'Очистка кэша';
+      AddLog(LogFile, Caption);
+      if not ClearCache() then
+        raise Exception.Create(Caption + ' завершена с ошибкой!');
+      Caption := Caption + ' успешно завершен!';
+    end;
 
   end;
 end;
@@ -633,6 +646,27 @@ begin
   end;
   Process1.Execute;
   Result := Process1.ExitStatus = 0;
+end;
+
+function TForm1.ClearCache(): boolean;
+var
+  paths: tstringarray;
+  i: integer;
+  p: string;
+  lad, ad: string;
+begin
+  Result := True;
+  lad := GetEnvironmentVariableUTF8('LocalAppData');
+  ad := GetEnvironmentVariableUTF8('AppData');
+  paths := TStringArray.Create(lad + '\1C\1cv8', lad + '\1C\1cv82', ad + '\1C\1cv8', ad + '\1C\1cv82');
+  for i := 0 to length(paths)-1 do
+  begin
+    p := (paths[i]);
+    AddLog(LogFile, Format('Удаление %s', [p]));
+    if DirectoryExists(p) then
+    Result := Result and DeleteDirectory(p, True);
+  end;
+
 end;
 
 procedure TForm1.BitBtn3Click(Sender: TObject);
@@ -879,6 +913,22 @@ begin
   if k < 0 then
     exit;
   ListBox1.Items.Delete(k);
+end;
+
+procedure TForm1.MenuItem30Click(Sender: TObject);
+var
+  k: integer;
+begin
+  k := ListBox2.ItemIndex;
+  if (k > -1) then
+    ListBox2.Items.InsertObject(k, TMenuItem(Sender).Caption, TObject(ba_cache))
+  else
+    ListBox2.AddItem(TMenuItem(Sender).Caption, TObject(ba_cache));
+end;
+
+procedure TForm1.MenuItem31Click(Sender: TObject);
+begin
+  MyThread := TMyThread.Create(ba_cache);
 end;
 
 
