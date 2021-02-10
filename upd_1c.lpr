@@ -7,7 +7,7 @@ uses
   cthreads,
   {$ENDIF}{$ENDIF}
   Interfaces, // this includes the LCL widgetset
-  Forms, main;
+  Forms, main, CheckAndRepairForm;
 
 {$R *.res}
 
@@ -15,6 +15,7 @@ begin
   RequireDerivedFormResource := True;
   Application.Initialize;
   Application.CreateForm(TForm1, Form1);
+  Application.CreateForm(TCheckAndRepairF, CheckAndRepairF);
   Application.Run;
 end.
 

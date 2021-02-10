@@ -228,7 +228,7 @@ object Form1: TForm1
     top = 392
   end
   object OpenDialog1: TOpenDialog
-    Filter = '*.cfu;*.cf|*.cfu;*.cf|*.exe|*.exe|*.cf|*.cf|*.dt|*.dt'
+    Filter = '*.cfu;*.cf|*.cfu;*.cf|*.exe|*.exe|*.cf;*.cfe|*.cf;*.cfe|*.dt|*.dt'
     left = 312
     top = 392
   end
@@ -301,7 +301,7 @@ object Form1: TForm1
         OnClick = MenuItem14Click
       end
       object MenuItem13: TMenuItem
-        Caption = 'Загрузить конфигурацию'
+        Caption = 'Загрузить конфигурацию/расширение'
         OnClick = MenuItem13Click
       end
     end
@@ -358,7 +358,7 @@ object Form1: TForm1
         OnClick = MenuItem24Click
       end
       object MenuItem25: TMenuItem
-        Caption = 'Загрузить конфигурацию'
+        Caption = 'Загрузить конфигурацию/расширение'
         OnClick = MenuItem25Click
       end
     end

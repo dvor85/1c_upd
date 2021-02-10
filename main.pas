@@ -7,10 +7,10 @@ interface
 uses
   Classes, SysUtils, process, Forms, Controls, Dialogs,
   ExtCtrls, StdCtrls, Buttons, Menus, ComCtrls, ActnList, Spin, FileUtil,
-  IniFiles, Windows, lazutf8, TypInfo;
+  IniFiles, Windows, lazutf8, TypInfo, CheckAndRepairForm;
 
 const
-  Version: string = '2.2.2';
+  Version: string = '2.2.4';
   SectionMain: string = 'Main';
   KeyExecutable: string = 'Executable';
   SectionBase: string = 'Base';
@@ -30,7 +30,8 @@ type
 
   TMyThread = class(TThread)
     FBaseAction: TBaseAction;
-    constructor Create(BaseAction: TBaseAction); overload;
+    FParam: string;
+    constructor Create(BaseAction: TBaseAction; Param: string = ''); overload;
   protected
     procedure Execute; override;
   end;
@@ -134,6 +135,7 @@ type
     iniPath: string;
     ini: TIniFile;
     currentTask, progress: integer;
+    function GetIBCheckParams(): string;
     procedure ExecuteBaseAction(baseAction: TBaseAction; param: string);
     procedure SaveSettings();
     procedure SetComponentsEnabled(State: boolean);
@@ -144,7 +146,7 @@ type
     function restoreIB(filename: string): boolean;
     function dumpCFG(): boolean;
     function loadCFG(filename: string; updateCfg: boolean = True): boolean;
-    function CheckAndRepair(): boolean;
+    function CheckAndRepair(param: string): boolean;
     function updateBase(filename: string; updateCfg: boolean = False): boolean;
     function updateCFG(): boolean;
   public
@@ -231,11 +233,12 @@ end;
 { TForm1 }
 
 
-constructor TMyThread.Create(BaseAction: TBaseAction);
+constructor TMyThread.Create(BaseAction: TBaseAction; Param: string = '');
 begin
   inherited Create(False);
   FBaseAction := BaseAction;
   FreeOnTerminate := True;
+  FParam := Param;
 end;
 
 
@@ -277,9 +280,10 @@ begin
           end;
           listbox2.ClearSelection;
           Caption := 'Выполнение макроса успешно завершено!';
+          AddLog(LogFile, Caption);
         end
         else
-          ExecuteBaseAction(FBaseAction, OpenDialog1.Filename);
+          ExecuteBaseAction(FBaseAction, FParam);
       end;
       //MessageDlg(Form1.Caption, mtInformation, [mbOK], 0);
     except
@@ -288,12 +292,12 @@ begin
         msg := e.message;
         Form1.Caption := 'Операция завершена с ошибкой: "' + msg +
           '". Проверьте ' + ExtractFilePath(ParamStr(0)) + Form1.LogFile;
+        AddLog(Form1.LogFile, Form1.Caption);
         MessageDlg(Form1.Caption, mtError, [mbOK], 0);
       end;
     end;
   finally
     Form1.SetComponentsEnabled(True);
-    AddLog(Form1.LogFile, Form1.Caption);
     self.Terminate;
   end;
 end;
@@ -318,13 +322,14 @@ begin
       end;
       ListBox1.ClearSelection;
     end;
+
     ba_dumpib:
     begin
       Caption := 'Выгрузка информационной базы';
       AddLog(LogFile, Caption);
       if not dumpIB() then
-        raise Exception.Create('Выгрузка информационной базы не выполнена!');
-      Caption := 'Выгрузка информационной базы завершена!';
+        raise Exception.Create(Caption + ' не выполнена!');
+      Caption := Caption + ' завершена!';
       AddLog(LogFile, Caption);
       DeleteOld(IncludeTrailingBackslash(ExpandFileName(LabeledEdit1.Text)), '*.dt', SpinEdit1.Value);
     end;
@@ -334,8 +339,8 @@ begin
       Caption := 'Загрузка информационной базы';
       AddLog(LogFile, Format('%s "%s"', [Caption, param]));
       if (param = '') or (not restoreIB(param)) then
-        raise Exception.Create('Ошибка загрузки информационной базы!');
-      Caption := 'Загрузка информационной базы успешно завершено!';
+        raise Exception.Create(Caption + ' завершена с ошибкой!');
+      Caption := Caption + ' успешно завершено!';
       AddLog(LogFile, Caption);
     end;
 
@@ -354,9 +359,12 @@ begin
     begin
       Caption := 'Загрузка конфигурации';
       AddLog(LogFile, Format('%s "%s"', [Caption, param]));
+      if ExtractFileExt(param) = '.cfe' then
+        Caption := 'Загрузка расширения';
+      AddLog(LogFile, Format('%s "%s"', [Caption, param]));
       if (param = '') or (not loadCFG(param)) then
-        raise Exception.Create('Ошибка загрузки конфигурации!');
-      Caption := 'Загрузка конфигурации успешно завершено!';
+        raise Exception.Create('Ошибка ' + Caption + '!');
+      Caption := Caption + ' успешно завершено!';
       AddLog(LogFile, Caption);
     end;
 
@@ -364,9 +372,9 @@ begin
     begin
       Caption := 'Тестирование и исправление базы';
       AddLog(LogFile, Caption);
-      if not CheckAndRepair() then
-        raise Exception.Create('Тестирование и исправление базы завершено с ошибкой!');
-      Caption := 'Тестирование и исправление базы успешно завершено!';
+      if not CheckAndRepair(param) then
+        raise Exception.Create(Caption + ' завершено с ошибкой!');
+      Caption := Caption + ' успешно завершено!';
       AddLog(LogFile, Caption);
     end;
 
@@ -375,8 +383,8 @@ begin
       Caption := 'Запуск в режиме ENTERPRISE';
       AddLog(LogFile, Caption);
       if not runEnterprise() then
-        raise Exception.Create('Запуск в режиме ENTERPRISE завершен с ошибкой!');
-      Caption := 'Запуск в режиме ENTERPRISE успешно завершен!';
+        raise Exception.Create(Caption + ' завершен с ошибкой!');
+      Caption := Caption + ' успешно завершен!';
       AddLog(LogFile, Caption);
     end;
 
@@ -385,13 +393,32 @@ begin
       Caption := 'Запуск в режиме конфигуратора';
       AddLog(LogFile, Caption);
       if not runConfig() then
-        raise Exception.Create('Запуск в режиме конфигуратора завершен с ошибкой!');
-      Caption := 'Запуск в режиме конфигуратора успешно завершен!';
+        raise Exception.Create(Caption + ' завершен с ошибкой!');
+      Caption := Caption + ' успешно завершен!';
       AddLog(LogFile, Caption);
     end;
 
   end;
 end;
+
+function TForm1.GetIBCheckParams(): string;
+var
+  i: integer;
+  params: string;
+begin
+  Result := '';
+  CheckAndRepairF.ShowModal;
+  if CheckAndRepairF.ModalResult = mrOk then
+  begin
+    params := '';
+    for i := 0 to CheckAndRepairF.CheckGroup1.Items.Count - 1 do
+      if CheckAndRepairF.CheckGroup1.Checked[i] then
+        params := params + IntToStr(i) + ',';
+    Delete(params, length(params), 1);
+    Result := params;
+  end;
+end;
+
 
 procedure TForm1.SetComponentsEnabled(State: boolean);
 begin
@@ -503,6 +530,8 @@ begin
     Add('/N"' + Utf8ToWinCP(LabeledEdit4.Text) + '"');
     Add('/P"' + Utf8ToWinCP(LabeledEdit5.Text) + '"');
     Add('/LoadCfg"' + Utf8ToWinCP(filename) + '"');
+    if ExtractFileExt(filename) = '.cfe' then
+      Add('-Extension"' + Utf8ToWinCP(StringReplace(ExtractFileName(filename), '.cfe', '', [rfReplaceAll, rfIgnoreCase])) + '"');
     if updateCfg then
       Add('/UpdateDBCfg');
     Add('/Out "' + Utf8ToWinCP(LogFile) + '" -NoTruncate');
@@ -534,8 +563,12 @@ begin
   Result := Process1.ExitStatus = 0;
 end;
 
-function TForm1.CheckAndRepair(): boolean;
+function TForm1.CheckAndRepair(param: string): boolean;
+var
+  i: integer;
+  params: TStringArray;
 begin
+  params := param.Split(',');
   with Process1.Parameters do
   begin
     Clear();
@@ -546,7 +579,16 @@ begin
     Add('/F"' + Utf8ToWinCP(LabeledEdit2.Text) + '"');
     Add('/N"' + Utf8ToWinCP(LabeledEdit4.Text) + '"');
     Add('/P"' + Utf8ToWinCP(LabeledEdit5.Text) + '"');
-    Add('/IBCheckAndRepair -Rebuild -ReIndex -LogAndRefsIntegrity -RecalcTotals -IBCompression');
+    Add('/IBCheckAndRepair');
+    for i := 0 to length(params) - 1 do
+      case params[i] of
+        '0': Add('-ReIndex');
+        '1': Add('-LogIntegrity');
+        '2': Add('-LogAndRefsIntegrity');
+        '3': Add('-RecalcTotals');
+        '4': Add('-IBCompression');
+        '5': Add('-Rebuild');
+      end;
     Add('/Out "' + Utf8ToWinCP(LogFile) + '" -NoTruncate');
   end;
   Process1.Execute;
@@ -769,12 +811,17 @@ end;
 procedure TForm1.MenuItem22Click(Sender: TObject);
 var
   k: integer;
+  params: string;
 begin
-  k := ListBox2.ItemIndex;
-  if (k > -1) then
-    ListBox2.Items.InsertObject(k, TMenuItem(Sender).Caption, TObject(ba_check))
-  else
-    ListBox2.AddItem(TMenuItem(Sender).Caption, TObject(ba_check));
+  params := GetIBCheckParams();
+  if not params.IsEmpty then
+  begin
+    k := ListBox2.ItemIndex;
+    if (k > -1) then
+      ListBox2.Items.InsertObject(k, Format('%s(%s)', [TMenuItem(Sender).Caption, params]), TObject(ba_check))
+    else
+      ListBox2.AddItem(Format('%s(%s)', [TMenuItem(Sender).Caption, params]), TObject(ba_check));
+  end;
 end;
 
 procedure TForm1.MenuItem24Click(Sender: TObject);
@@ -905,7 +952,7 @@ begin
   OpenDialog1.FilterIndex := 4;
   if OpenDialog1.Execute then
   begin
-    MyThread := TMyThread.Create(ba_restoreib);
+    MyThread := TMyThread.Create(ba_restoreib, OpenDialog1.FileName);
   end;
 end;
 
@@ -920,13 +967,17 @@ begin
   OpenDialog1.FilterIndex := 3;
   if OpenDialog1.Execute then
   begin
-    MyThread := TMyThread.Create(ba_loadcfg);
+    MyThread := TMyThread.Create(ba_loadcfg, OpenDialog1.FileName);
   end;
 end;
 
 procedure TForm1.MenuItem3Click(Sender: TObject);
+var
+  params: string;
 begin
-  MyThread := TMyThread.Create(ba_check);
+  params := GetIBCheckParams();
+  if not params.IsEmpty then
+    MyThread := TMyThread.Create(ba_check, params);
 end;
 
 procedure TForm1.MenuItem4Click(Sender: TObject);
