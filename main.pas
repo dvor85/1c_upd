@@ -5,9 +5,9 @@ unit main;
 interface
 
 uses
-  Classes, SysUtils, process, Forms, Controls, Dialogs,
-  ExtCtrls, StdCtrls, Buttons, Menus, ComCtrls, ActnList, Spin, FileUtil,
-  IniFiles, Windows, lazutf8, TypInfo, CheckAndRepairForm;
+  Classes, SysUtils, process, Forms, Controls, Dialogs, ExtCtrls, StdCtrls,
+  Buttons, Menus, ComCtrls, ActnList, Spin, ExtDlgs, FileUtil, IniFiles,
+  Windows, lazutf8, TypInfo, CheckAndRepairForm;
 
 const
   Version: string = '2.2.4';
@@ -26,7 +26,7 @@ const
 type
 
   TBaseAction = (ba_update, ba_dumpib, ba_restoreib, ba_dumpcfg,
-    ba_loadcfg, ba_check, ba_enterprise, ba_config, ba_cache, ba_macro);
+    ba_loadcfg, ba_check, ba_enterprise, ba_config, ba_cache, ba_journal, ba_integrity, ba_physical, ba_macro);
 
   TMyThread = class(TThread)
     FBaseAction: TBaseAction;
@@ -43,6 +43,7 @@ type
     BitBtn1: TBitBtn;
     BitBtn2: TBitBtn;
     BitBtn3: TBitBtn;
+    CalendarDialog1: TCalendarDialog;
     GroupBox4: TGroupBox;
     Label1: TLabel;
     ListBox1: TListBox;
@@ -62,6 +63,12 @@ type
     MenuItem29: TMenuItem;
     MenuItem30: TMenuItem;
     MenuItem31: TMenuItem;
+    MenuItem32: TMenuItem;
+    MenuItem33: TMenuItem;
+    MenuItem34: TMenuItem;
+    MenuItem35: TMenuItem;
+    MenuItem36: TMenuItem;
+    MenuItem37: TMenuItem;
     PopupMenu2: TPopupMenu;
     Memo1: TMemo;
     MenuItem1: TMenuItem;
@@ -92,6 +99,7 @@ type
     OpenDialog1: TOpenDialog;
     PopupMenu1: TPopupMenu;
     Process1: TProcess;
+    SomeProc: TProcess;
     SelectDirectoryDialog1: TSelectDirectoryDialog;
     SpinEdit1: TSpinEdit;
     Splitter1: TSplitter;
@@ -125,6 +133,12 @@ type
     procedure MenuItem2Click(Sender: TObject);
     procedure MenuItem30Click(Sender: TObject);
     procedure MenuItem31Click(Sender: TObject);
+    procedure MenuItem32Click(Sender: TObject);
+    procedure MenuItem33Click(Sender: TObject);
+    procedure MenuItem34Click(Sender: TObject);
+    procedure MenuItem35Click(Sender: TObject);
+    procedure MenuItem36Click(Sender: TObject);
+    procedure MenuItem37Click(Sender: TObject);
     procedure MenuItem3Click(Sender: TObject);
     procedure MenuItem4Click(Sender: TObject);
     procedure MenuItem5Click(Sender: TObject);
@@ -152,8 +166,10 @@ type
     function loadCFG(filename: string; updateCfg: boolean = True): boolean;
     function CheckAndRepair(param: string): boolean;
     function updateBase(filename: string; updateCfg: boolean = False): boolean;
-    function updateCFG(): boolean;
+    function IBRestoreIntegrity(): boolean;
     function ClearCache(): boolean;
+    function ReduceEventLogSize(date: string): boolean;
+    function CheckPhysicalIntegrity(): boolean;
   public
     { public declarations }
   end;
@@ -402,13 +418,45 @@ begin
       Caption := Caption + ' успешно завершен!';
       AddLog(LogFile, Caption);
     end;
+    ba_integrity:
+    begin
+      Caption := 'Восстановление структуры информационной базы';
+      AddLog(LogFile, Caption);
+      if not IBRestoreIntegrity() then
+        raise Exception.Create(Caption + ' завершено с ошибкой!');
+      Caption := Caption + ' успешно завершено!';
+      AddLog(LogFile, Caption);
+    end;
+    ba_physical:
+    begin
+      Caption := 'Восстановление физической целостности';
+      AddLog(LogFile, Caption);
+      if not CheckPhysicalIntegrity() then
+        raise Exception.Create(Caption + ' завершено с ошибкой!');
+      Caption := Caption + ' успешно завершено!';
+      AddLog(LogFile, Caption);
+    end;
     ba_cache:
     begin
       Caption := 'Очистка кэша';
       AddLog(LogFile, Caption);
       if not ClearCache() then
         raise Exception.Create(Caption + ' завершена с ошибкой!');
-      Caption := Caption + ' успешно завершен!';
+      Caption := Caption + ' успешно завершена!';
+      AddLog(LogFile, Caption);
+    end;
+    ba_journal:
+    begin
+      Caption := 'Сокращение журнала регистрации';
+      if not param.IsEmpty then
+      begin
+        AddLog(LogFile, Format('%s "%s"', [Caption, param]));
+        if not ReduceEventLogSize(param) then
+          raise Exception.Create(Caption + ' завершено с ошибкой!');
+        Caption := Caption + ' успешно завершено!';
+        AddLog(LogFile, Caption);
+        DeleteOld(IncludeTrailingBackslash(ExpandFileName(LabeledEdit1.Text)), '*.lgd', SpinEdit1.Value);
+      end;
     end;
 
   end;
@@ -482,6 +530,25 @@ begin
   Process1.Execute;
   Result := Process1.ExitStatus = 0;
 
+end;
+
+function TForm1.IBRestoreIntegrity(): boolean;
+begin
+  with Process1.Parameters do
+  begin
+    Clear();
+    Add('DESIGNER');
+    Add('/DisableStartupMessages');
+    Add('/DisableStartupDialogs');
+    Add('/DisableSplash');
+    Add('/F"' + Utf8ToWinCP(LabeledEdit2.Text) + '"');
+    Add('/N"' + Utf8ToWinCP(LabeledEdit4.Text) + '"');
+    Add('/P"' + Utf8ToWinCP(LabeledEdit5.Text) + '"');
+    Add('/IBRestoreIntegrity');
+    Add('/Out "' + Utf8ToWinCP(LogFile) + '" -NoTruncate');
+  end;
+  Process1.Execute;
+  Result := Process1.ExitStatus = 0;
 end;
 
 function TForm1.restoreIB(filename: string): boolean;
@@ -576,6 +643,64 @@ begin
   Result := Process1.ExitStatus = 0;
 end;
 
+function TForm1.ReduceEventLogSize(date: string): boolean;
+var
+  fn: string;
+begin
+  fn := IncludeTrailingBackslash(ExpandFileName(LabeledEdit1.Text)) + date + '.lgd';
+  AddLog(LogFile, 'Backup: "' + fn + '"');
+  with Process1.Parameters do
+  begin
+    Clear();
+    Add('DESIGNER');
+    Add('/DisableStartupMessages');
+    Add('/DisableStartupDialogs');
+    Add('/DisableSplash');
+    Add('/F"' + Utf8ToWinCP(LabeledEdit2.Text) + '"');
+    Add('/N"' + Utf8ToWinCP(LabeledEdit4.Text) + '"');
+    Add('/P"' + Utf8ToWinCP(LabeledEdit5.Text) + '"');
+    Add('/ReduceEventLogSize ' + date);
+    Add('-saveAs"' + Utf8ToWinCP(fn) + '"');
+    Add('/Out "' + Utf8ToWinCP(LogFile) + '" -NoTruncate');
+  end;
+  Process1.Execute;
+  Result := Process1.ExitStatus = 0;
+
+  SomeProc.CurrentDirectory := ExtractFilePath(ParamStr(0));
+  SomeProc.Executable := IncludeTrailingBackslash(SomeProc.CurrentDirectory) + 'sqlite3.exe';
+  if FileExists(SomeProc.Executable) then
+  begin
+    SomeProc.Options := [poWaitOnExit];
+    SomeProc.ShowWindow := swoHIDE;
+    with SomeProc.Parameters do
+    begin
+      Clear();
+      Add(Utf8ToWinCP(IncludeTrailingBackslash(LabeledEdit2.Text) + '1Cv8Log\1Cv8.lgd'));
+      Add('vacuum');
+    end;
+    SomeProc.Execute;
+  end
+  else
+    AddLog(LogFile, 'Отсутствует: "' + SomeProc.Executable + '"');
+
+end;
+
+
+function TForm1.CheckPhysicalIntegrity(): boolean;
+begin
+  SomeProc.CurrentDirectory := ExtractFilePath(LabeledEdit3.Text);
+  SomeProc.Executable := IncludeTrailingBackslash(SomeProc.CurrentDirectory) + 'chdbfl.exe';
+  if FileExists(SomeProc.Executable) then
+  begin
+    SomeProc.Options := [poWaitOnExit];
+    SomeProc.ShowWindow := swoShowNormal;
+    SomeProc.Execute;
+  end
+  else
+    AddLog(LogFile, 'Отсутствует: "' + SomeProc.Executable + '"');
+  Result := Process1.ExitStatus = 0;
+end;
+
 function TForm1.CheckAndRepair(param: string): boolean;
 var
   i: integer;
@@ -629,44 +754,25 @@ begin
   Result := Process1.ExitStatus = 0;
 end;
 
-function TForm1.updateCFG(): boolean;
-begin
-  with Process1.Parameters do
-  begin
-    Clear();
-    Add('DESIGNER');
-    Add('/DisableStartupMessages');
-    Add('/DisableStartupDialogs');
-    Add('/DisableSplash');
-    Add('/F"' + Utf8ToWinCP(LabeledEdit2.Text) + '"');
-    Add('/N"' + Utf8ToWinCP(LabeledEdit4.Text) + '"');
-    Add('/P"' + Utf8ToWinCP(LabeledEdit5.Text) + '"');
-    Add('/UpdateDBCfg');
-    Add('/Out "' + Utf8ToWinCP(LogFile) + '" -NoTruncate');
-  end;
-  Process1.Execute;
-  Result := Process1.ExitStatus = 0;
-end;
 
 function TForm1.ClearCache(): boolean;
 var
-  paths: tstringarray;
-  i: integer;
+  paths, envs: tstringarray;
+  i, j: integer;
   p: string;
-  lad, ad: string;
 begin
   Result := True;
-  lad := GetEnvironmentVariableUTF8('LocalAppData');
-  ad := GetEnvironmentVariableUTF8('AppData');
-  paths := TStringArray.Create(lad + '\1C\1cv8', lad + '\1C\1cv82', ad + '\1C\1cv8', ad + '\1C\1cv82');
-  for i := 0 to length(paths)-1 do
-  begin
-    p := (paths[i]);
-    AddLog(LogFile, Format('Удаление %s', [p]));
-    if DirectoryExists(p) then
-    Result := Result and DeleteDirectory(p, True);
-  end;
+  envs := TStringArray.Create(GetEnvironmentVariableUTF8('LocalAppData'), GetEnvironmentVariableUTF8('AppData'));
+  paths := TStringArray.Create('1C\1cv8', '1C\1cv82');
 
+  for i := 0 to length(envs) - 1 do
+    for j := 0 to length(paths) - 1 do
+    begin
+      p := IncludeTrailingBackslash(envs[i]) + paths[j];
+      AddLog(LogFile, Format('Удаление %s', [p]));
+      if DirectoryExists(p) then
+        DeleteDirectory(p, True);
+    end;
 end;
 
 procedure TForm1.BitBtn3Click(Sender: TObject);
@@ -931,6 +1037,62 @@ begin
   MyThread := TMyThread.Create(ba_cache);
 end;
 
+procedure TForm1.MenuItem32Click(Sender: TObject);
+begin
+  CalendarDialog1.Date := Now();
+  if CalendarDialog1.Execute then
+    MyThread := TMyThread.Create(ba_journal, FormatDateTime('yyyy-mm-dd', CalendarDialog1.Date));
+end;
+
+procedure TForm1.MenuItem33Click(Sender: TObject);
+var
+  k: integer;
+begin
+  CalendarDialog1.Date := Now();
+  if CalendarDialog1.Execute then
+  begin
+    k := ListBox2.ItemIndex;
+    if (k > -1) then
+      ListBox2.Items.InsertObject(k, Format('%s(%s)', [TMenuItem(Sender).Caption,
+        FormatDateTime('yyyy-mm-dd', CalendarDialog1.Date)]), TObject(ba_journal))
+    else
+      ListBox2.AddItem(Format('%s(%s)', [TMenuItem(Sender).Caption, FormatDateTime('yyyy-mm-dd', CalendarDialog1.Date)]),
+        TObject(ba_journal));
+  end;
+end;
+
+procedure TForm1.MenuItem34Click(Sender: TObject);
+begin
+  MyThread := TMyThread.Create(ba_integrity);
+end;
+
+procedure TForm1.MenuItem35Click(Sender: TObject);
+var
+  k: integer;
+begin
+  k := ListBox2.ItemIndex;
+  if (k > -1) then
+    ListBox2.Items.InsertObject(k, TMenuItem(Sender).Caption, TObject(ba_integrity))
+  else
+    ListBox2.AddItem(TMenuItem(Sender).Caption, TObject(ba_integrity));
+end;
+
+procedure TForm1.MenuItem36Click(Sender: TObject);
+begin
+  MyThread := TMyThread.Create(ba_physical);
+end;
+
+procedure TForm1.MenuItem37Click(Sender: TObject);
+var
+  k: integer;
+begin
+  k := ListBox2.ItemIndex;
+  if (k > -1) then
+    ListBox2.Items.InsertObject(k, TMenuItem(Sender).Caption, TObject(ba_physical))
+  else
+    ListBox2.AddItem(TMenuItem(Sender).Caption, TObject(ba_physical));
+end;
+
 
 procedure TForm1.MenuItem5Click(Sender: TObject);
 begin
@@ -1036,6 +1198,7 @@ begin
     #10#13 + 'Version: ' + Version + #10#13 + 'Автор: Дмитрий Воротилин, dvor85@gmail.com',
     mtInformation, [mbOK], 0);
 end;
+
 
 
 

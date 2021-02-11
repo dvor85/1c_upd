@@ -3,3 +3,4 @@ lib/
 logs/
 *.exe
 *.ini
+*.lgd

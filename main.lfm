@@ -293,9 +293,21 @@ object Form1: TForm1
         Caption = 'Тестирование и исправление'
         OnClick = MenuItem3Click
       end
+      object MenuItem34: TMenuItem
+        Caption = 'Восстановление структуры ИБ'
+        OnClick = MenuItem34Click
+      end
       object MenuItem31: TMenuItem
         Caption = 'Удалить кэш и настройки'
         OnClick = MenuItem31Click
+      end
+      object MenuItem32: TMenuItem
+        Caption = 'Сократить журнал регистрации'
+        OnClick = MenuItem32Click
+      end
+      object MenuItem36: TMenuItem
+        Caption = 'Восстановление физической целостности'
+        OnClick = MenuItem36Click
       end
     end
     object MenuItem12: TMenuItem
@@ -354,9 +366,21 @@ object Form1: TForm1
         Caption = 'Тестирование и исправление'
         OnClick = MenuItem22Click
       end
+      object MenuItem35: TMenuItem
+        Caption = 'Восстановление структуры ИБ'
+        OnClick = MenuItem35Click
+      end
       object MenuItem30: TMenuItem
         Caption = 'Удалить кэш и настройки'
         OnClick = MenuItem30Click
+      end
+      object MenuItem33: TMenuItem
+        Caption = 'Сократить журнал регистрации'
+        OnClick = MenuItem33Click
+      end
+      object MenuItem37: TMenuItem
+        Caption = 'Восстановление физической целостности'
+        OnClick = MenuItem37Click
       end
     end
     object MenuItem23: TMenuItem
@@ -378,5 +402,29 @@ object Form1: TForm1
       Caption = 'Удалить все'
       OnClick = MenuItem29Click
     end
+  end
+  object CalendarDialog1: TCalendarDialog
+    DialogPosition = poOwnerFormCenter
+    Date = 44238
+    OKCaption = '&ОК'
+    CancelCaption = 'Отмена'
+    left = 480
+    top = 280
+  end
+  object SomeProc: TProcess
+    Active = False
+    Options = []
+    Priority = ppNormal
+    StartupOptions = []
+    ShowWindow = swoNone
+    WindowColumns = 0
+    WindowHeight = 0
+    WindowLeft = 0
+    WindowRows = 0
+    WindowTop = 0
+    WindowWidth = 0
+    FillAttribute = 0
+    left = 648
+    top = 296
   end
 end
