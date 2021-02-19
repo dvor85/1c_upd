@@ -10,7 +10,7 @@ uses
   Windows, lazutf8, TypInfo, CheckAndRepairForm;
 
 const
-  Version: string = '2.2.4';
+  Version: string = '2.2.5';
   SectionMain: string = 'Main';
   KeyExecutable: string = 'Executable';
   SectionBase: string = 'Base';
@@ -19,6 +19,7 @@ const
   KeyBackupCount: string = 'BakcupCount';
   KeyUser: string = 'User';
   KeyPass: string = 'Password';
+  KeyPageSize: string = 'PageSize';
   KeyLogFile: string = 'LogFile';
   SectionUpdates: string = 'Updates';
   SectionMacro: string = 'Macro';
@@ -26,7 +27,8 @@ const
 type
 
   TBaseAction = (ba_update, ba_dumpib, ba_restoreib, ba_dumpcfg,
-    ba_loadcfg, ba_check, ba_enterprise, ba_config, ba_cache, ba_journal, ba_integrity, ba_physical, ba_macro);
+    ba_loadcfg, ba_check, ba_enterprise, ba_config, ba_cache, ba_journal, ba_integrity, ba_physical,
+    ba_macro, ba_convert);
 
   TMyThread = class(TThread)
     FBaseAction: TBaseAction;
@@ -34,6 +36,8 @@ type
     constructor Create(BaseAction: TBaseAction; Param: string = ''); overload;
   protected
     procedure Execute; override;
+  public
+    procedure OnMyTerminate(Sender: TObject);
   end;
 
   { TForm1 }
@@ -46,6 +50,8 @@ type
     CalendarDialog1: TCalendarDialog;
     GroupBox4: TGroupBox;
     Label1: TLabel;
+    Label2: TLabel;
+    Label3: TLabel;
     ListBox1: TListBox;
     GroupBox1: TGroupBox;
     GroupBox2: TGroupBox;
@@ -69,6 +75,8 @@ type
     MenuItem35: TMenuItem;
     MenuItem36: TMenuItem;
     MenuItem37: TMenuItem;
+    MenuItem38: TMenuItem;
+    MenuItem39: TMenuItem;
     PopupMenu2: TPopupMenu;
     Memo1: TMemo;
     MenuItem1: TMenuItem;
@@ -102,6 +110,7 @@ type
     SomeProc: TProcess;
     SelectDirectoryDialog1: TSelectDirectoryDialog;
     SpinEdit1: TSpinEdit;
+    SpinEdit2: TSpinEdit;
     Splitter1: TSplitter;
     Splitter2: TSplitter;
     StatusBar1: TStatusBar;
@@ -112,6 +121,7 @@ type
     procedure FormClose(Sender: TObject; var CloseAction: TCloseAction);
     procedure FormCloseQuery(Sender: TObject; var CanClose: boolean);
     procedure FormCreate(Sender: TObject);
+    procedure FormShow(Sender: TObject);
     procedure LabeledEdit3Change(Sender: TObject);
     procedure MenuItem10Click(Sender: TObject);
     procedure MenuItem11Click(Sender: TObject);
@@ -139,6 +149,8 @@ type
     procedure MenuItem35Click(Sender: TObject);
     procedure MenuItem36Click(Sender: TObject);
     procedure MenuItem37Click(Sender: TObject);
+    procedure MenuItem38Click(Sender: TObject);
+    procedure MenuItem39Click(Sender: TObject);
     procedure MenuItem3Click(Sender: TObject);
     procedure MenuItem4Click(Sender: TObject);
     procedure MenuItem5Click(Sender: TObject);
@@ -170,6 +182,7 @@ type
     function ClearCache(): boolean;
     function ReduceEventLogSize(date: string): boolean;
     function CheckPhysicalIntegrity(): boolean;
+    function ConvertFileBase(): boolean;
   public
     { public declarations }
   end;
@@ -177,6 +190,7 @@ type
 
 var
   Form1: TForm1;
+  run_non_interactive: boolean = False;
 
 
 implementation
@@ -259,7 +273,14 @@ begin
   inherited Create(False);
   FBaseAction := BaseAction;
   FreeOnTerminate := True;
+  OnTerminate := @OnMyTerminate;
   FParam := Param;
+end;
+
+procedure TMyThread.OnMyTerminate(Sender: TObject);
+begin
+  if run_non_interactive then
+    Form1.Close();
 end;
 
 
@@ -445,6 +466,15 @@ begin
       Caption := Caption + ' успешно завершена!';
       AddLog(LogFile, Caption);
     end;
+    ba_convert:
+    begin
+      Caption := 'Конвертация файловой ИБ в новый формат';
+      AddLog(LogFile, Caption);
+      if not ConvertFileBase() then
+        raise Exception.Create(Caption + ' завершена с ошибкой!');
+      Caption := Caption + ' успешно завершена!';
+      AddLog(LogFile, Caption);
+    end;
     ba_journal:
     begin
       Caption := 'Сокращение журнала регистрации';
@@ -494,6 +524,7 @@ begin
   ListBox1.Enabled := State;
   ListBox2.Enabled := State;
   SpinEdit1.Enabled := State;
+  SpinEdit2.Enabled := State;
 end;
 
 function TForm1.runEnterprise(): boolean;
@@ -698,7 +729,33 @@ begin
   end
   else
     AddLog(LogFile, 'Отсутствует: "' + SomeProc.Executable + '"');
-  Result := Process1.ExitStatus = 0;
+  Result := SomeProc.ExitStatus = 0;
+end;
+
+function TForm1.ConvertFileBase(): boolean;
+var
+  base_file: string;
+begin
+  base_file := IncludeTrailingBackslash(LabeledEdit2.Text) + '1Cv8.1CD';
+  SomeProc.CurrentDirectory := ExtractFilePath(LabeledEdit3.Text);
+  SomeProc.Executable := IncludeTrailingBackslash(SomeProc.CurrentDirectory) + 'cnvdbfl.exe';
+  if FileExists(SomeProc.Executable) then
+  begin
+    SomeProc.Options := [poWaitOnExit];
+    SomeProc.ShowWindow := swoHIDE;
+    with SomeProc.Parameters do
+    begin
+      Clear();
+      Add('--convert');
+      Add('--format=8.3.8');
+      Add('--page=' + IntToStr(SpinEdit2.Value) + 'k');
+      Add(Utf8ToWinCP(base_file));
+    end;
+    SomeProc.Execute;
+  end
+  else
+    AddLog(LogFile, 'Отсутствует: "' + SomeProc.Executable + '"');
+  Result := SomeProc.ExitStatus = 0;
 end;
 
 function TForm1.CheckAndRepair(param: string): boolean;
@@ -794,6 +851,7 @@ begin
   ini.WriteString(SectionBase, KeyUser, LabeledEdit4.Text);
   ini.WriteString(SectionBase, KeyPass, EncodeStringBase64(LabeledEdit5.Text));
   ini.WriteInteger(SectionBase, KeyBackupCount, SpinEdit1.Value);
+  ini.WriteInteger(SectionBase, KeyPageSize, SpinEdit2.Value);
   ini.EraseSection(SectionUpdates);
   for i := 0 to ListBox1.Count - 1 do
     ini.WriteString(SectionUpdates, IntToStr(i), ListBox1.Items[i]);
@@ -805,7 +863,7 @@ end;
 
 procedure TForm1.FormClose(Sender: TObject; var CloseAction: TCloseAction);
 begin
-  if MessageDlg('Сохранить настройки?', mtConfirmation, mbYesNo, 0) = mrYes then
+  if not run_non_interactive and (MessageDlg('Сохранить настройки?', mtConfirmation, mbYesNo, 0) = mrYes) then
   begin
     SaveSettings();
   end;
@@ -816,7 +874,7 @@ end;
 procedure TForm1.FormCloseQuery(Sender: TObject; var CanClose: boolean);
 begin
   if Process1.Running then
-    CanClose := (MessageDlg(
+    CanClose := run_non_interactive or (MessageDlg(
       'Идет работа с базой данных. Вы действительно хотите закрыть программу?',
       mtWarning, mbYesNo, 0) = mrYes)
   else
@@ -844,14 +902,22 @@ begin
   Process1.CurrentDirectory := ExtractFilePath(ParamStr(0));
   Process1.Options := [poWaitOnExit];
   iniPath := ChangeFileExt(ParamStr(0), '.ini');
-  if Paramcount > 0 then
-    iniPath := ParamStr(1);
+  for i := 1 to Paramcount do
+  begin
+    if FileExists(ParamStr(i)) then
+    begin
+      iniPath := ParamStr(i);
+      continue;
+    end;
+    run_non_interactive := run_non_interactive or (ParamStr(i) = '-r');
+  end;
   StatusBar1.SimpleText := AnsiToUtf8(iniPath);
   ini := TIniFile.Create(iniPath);
   LabeledEdit3.Text := ini.ReadString(SectionMain, KeyExecutable, '');
   LogFile := ini.ReadString(SectionMain, KeyLogFile, 'logs\' + ChangeFileExt(ExtractFileName(iniPath), '.log'));
   LabeledEdit1.Text := ini.ReadString(SectionBase, KeyBakcupPath, '');
   SpinEdit1.Value := ini.ReadInteger(SectionBase, KeyBackupCount, 3);
+  SpinEdit2.Value := ini.ReadInteger(SectionBase, KeyPageSize, 8);
   LabeledEdit2.Text := ini.ReadString(SectionBase, KeyPath, '');
   LabeledEdit4.Text := ini.ReadString(SectionBase, KeyUser, '');
   try
@@ -874,7 +940,15 @@ begin
     list.Free;
   end;
   AddLog(LogFile, ExtractFileName(ParamStr(0)) + ' started!');
+  if run_non_interactive then
+  begin
+    Application.ShowMainForm := False;
+    MyThread := TMyThread.Create(ba_macro);
+  end;
+end;
 
+procedure TForm1.FormShow(Sender: TObject);
+begin
 end;
 
 procedure TForm1.LabeledEdit3Change(Sender: TObject);
@@ -1091,6 +1165,22 @@ begin
     ListBox2.Items.InsertObject(k, TMenuItem(Sender).Caption, TObject(ba_physical))
   else
     ListBox2.AddItem(TMenuItem(Sender).Caption, TObject(ba_physical));
+end;
+
+procedure TForm1.MenuItem38Click(Sender: TObject);
+var
+  k: integer;
+begin
+  k := ListBox2.ItemIndex;
+  if (k > -1) then
+    ListBox2.Items.InsertObject(k, TMenuItem(Sender).Caption, TObject(ba_convert))
+  else
+    ListBox2.AddItem(TMenuItem(Sender).Caption, TObject(ba_convert));
+end;
+
+procedure TForm1.MenuItem39Click(Sender: TObject);
+begin
+  MyThread := TMyThread.Create(ba_convert);
 end;
 
 
