@@ -1,131 +1,146 @@
 object Form1: TForm1
   Left = 488
-  Height = 560
+  Height = 498
   Top = 179
-  Width = 813
+  Width = 679
   Caption = 'Обновление 1с'
-  ClientHeight = 536
-  ClientWidth = 813
-  DesignTimePPI = 115
+  ClientHeight = 474
+  ClientWidth = 679
   Menu = MainMenu1
   OnClose = FormClose
   OnCloseQuery = FormCloseQuery
   OnCreate = FormCreate
   Position = poDesktopCenter
-  LCLVersion = '2.0.8.0'
+  LCLVersion = '2.0.6.0'
   object GroupBox1: TGroupBox
     Left = 0
-    Height = 82
-    Top = 54
-    Width = 813
+    Height = 68
+    Top = 45
+    Width = 679
     Align = alTop
     Caption = 'База'
-    ClientHeight = 58
-    ClientWidth = 809
+    ClientHeight = 51
+    ClientWidth = 677
+    ParentFont = False
     TabOrder = 1
     object LabeledEdit2: TLabeledEdit
-      Left = 40
+      Left = 33
       Height = 27
-      Top = -4
-      Width = 681
+      Top = -3
+      Width = 571
       Anchors = [akTop, akLeft, akRight]
-      EditLabel.Height = 19
-      EditLabel.Width = 30
+      EditLabel.Height = 14
+      EditLabel.Width = 29
       EditLabel.Caption = 'Путь'
       EditLabel.ParentColor = False
+      EditLabel.ParentFont = False
       LabelPosition = lpLeft
+      ParentFont = False
       TabOrder = 0
     end
     object BitBtn1: TBitBtn
-      Left = 726
-      Height = 28
-      Top = -5
-      Width = 78
+      Left = 608
+      Height = 23
+      Top = -4
+      Width = 65
       Anchors = [akTop, akRight]
       Caption = 'Выбрать'
       OnClick = BitBtn1Click
+      ParentFont = False
       TabOrder = 1
     end
     object LabeledEdit4: TLabeledEdit
-      Left = 98
+      Left = 82
       Height = 27
-      Top = 29
-      Width = 235
-      EditLabel.Height = 19
-      EditLabel.Width = 87
+      Top = 24
+      Width = 196
+      EditLabel.Height = 14
+      EditLabel.Width = 89
       EditLabel.Caption = 'Пользователь'
       EditLabel.ParentColor = False
+      EditLabel.ParentFont = False
       LabelPosition = lpLeft
+      ParentFont = False
       TabOrder = 2
     end
     object LabeledEdit5: TLabeledEdit
-      Left = 382
+      Left = 319
       Height = 27
-      Top = 29
-      Width = 235
+      Top = 24
+      Width = 196
       EchoMode = emPassword
-      EditLabel.Height = 19
+      EditLabel.Height = 14
       EditLabel.Width = 47
       EditLabel.Caption = 'Пароль'
       EditLabel.ParentColor = False
+      EditLabel.ParentFont = False
       LabelPosition = lpLeft
+      ParentFont = False
       PasswordChar = '*'
       TabOrder = 3
     end
     object SpinEdit2: TSpinEdit
-      Left = 736
+      Left = 614
       Height = 27
-      Top = 29
-      Width = 56
+      Top = 24
+      Width = 47
       Increment = 8
       MaxValue = 64
       MinValue = 8
+      ParentFont = False
       TabOrder = 4
       Value = 8
     end
     object Label2: TLabel
-      Left = 624
-      Height = 19
-      Top = 32
+      Left = 521
+      Height = 14
+      Top = 27
       Width = 111
       Caption = 'Размер страницы'
       ParentColor = False
+      ParentFont = False
     end
     object Label3: TLabel
-      Left = 797
-      Height = 19
-      Top = 32
+      Left = 665
+      Height = 14
+      Top = 27
       Width = 7
       Caption = 'k'
       ParentColor = False
+      ParentFont = False
     end
   end
   object GroupBox2: TGroupBox
     Left = 0
-    Height = 284
-    Top = 224
-    Width = 813
+    Height = 271
+    Top = 186
+    Width = 679
     Align = alClient
     Caption = 'Обновления'
-    ClientHeight = 260
-    ClientWidth = 809
+    ClientHeight = 254
+    ClientWidth = 677
+    ParentFont = False
     TabOrder = 2
     object ListBox1: TListBox
-      Left = 320
-      Height = 170
+      Left = 267
+      Height = 179
       Top = 0
-      Width = 489
+      Width = 410
       Align = alClient
       ItemHeight = 0
+      ParentFont = False
       PopupMenu = PopupMenu1
+      ScrollWidth = 408
       TabOrder = 0
+      TopIndex = -1
     end
     object Memo1: TMemo
       Left = 0
-      Height = 85
-      Top = 175
-      Width = 809
+      Height = 71
+      Top = 183
+      Width = 677
       Align = alBottom
+      ParentFont = False
       ReadOnly = True
       ScrollBars = ssAutoBoth
       TabOrder = 1
@@ -133,131 +148,146 @@ object Form1: TForm1
     object Splitter1: TSplitter
       Cursor = crVSplit
       Left = 0
-      Height = 5
-      Top = 170
-      Width = 809
+      Height = 4
+      Top = 179
+      Width = 677
       Align = alBottom
       ResizeAnchor = akBottom
     end
     object Splitter2: TSplitter
-      Left = 314
-      Height = 170
+      Left = 262
+      Height = 179
       Top = 0
-      Width = 6
+      Width = 5
     end
     object ListBox2: TListBox
       Left = 0
-      Height = 170
+      Height = 179
       Top = 0
-      Width = 314
+      Width = 262
       Align = alLeft
       ItemHeight = 0
+      ParentFont = False
       PopupMenu = PopupMenu2
+      ScrollWidth = 260
       TabOrder = 4
+      TopIndex = -1
     end
   end
   object GroupBox3: TGroupBox
     Left = 0
-    Height = 54
+    Height = 45
     Top = 0
-    Width = 813
+    Width = 679
     Align = alTop
     Caption = 'Программа 1с'
-    ClientHeight = 30
-    ClientWidth = 809
+    ClientHeight = 28
+    ClientWidth = 677
+    ParentFont = False
     TabOrder = 0
     object LabeledEdit3: TLabeledEdit
-      Left = 40
+      Left = 33
       Height = 27
       Top = -1
-      Width = 680
+      Width = 570
       Anchors = [akTop, akLeft, akRight]
-      EditLabel.Height = 19
-      EditLabel.Width = 30
+      EditLabel.Height = 14
+      EditLabel.Width = 29
       EditLabel.Caption = 'Путь'
       EditLabel.ParentColor = False
+      EditLabel.ParentFont = False
       LabelPosition = lpLeft
+      ParentFont = False
       TabOrder = 0
       OnChange = LabeledEdit3Change
     end
     object BitBtn2: TBitBtn
-      Left = 726
-      Height = 27
+      Left = 608
+      Height = 23
       Top = -1
-      Width = 78
+      Width = 65
       Anchors = [akTop, akRight]
       Caption = 'Выбрать'
       OnClick = BitBtn2Click
+      ParentFont = False
       TabOrder = 1
     end
   end
   object StatusBar1: TStatusBar
     Left = 0
-    Height = 28
-    Top = 508
-    Width = 813
+    Height = 17
+    Top = 457
+    Width = 679
     Panels = <>
+    ParentFont = False
   end
   object GroupBox4: TGroupBox
     Left = 0
-    Height = 88
-    Top = 136
-    Width = 813
+    Height = 73
+    Top = 113
+    Width = 679
     Align = alTop
     Caption = 'Резервная копия'
-    ClientHeight = 64
-    ClientWidth = 809
+    ClientHeight = 56
+    ClientWidth = 677
+    ParentFont = False
     TabOrder = 4
     object LabeledEdit1: TLabeledEdit
-      Left = 113
+      Left = 94
       Height = 27
       Top = -2
-      Width = 607
+      Width = 509
       Anchors = [akTop, akLeft, akRight]
-      EditLabel.Height = 19
-      EditLabel.Width = 103
+      EditLabel.Height = 14
+      EditLabel.Width = 102
       EditLabel.Caption = 'Путь для бэкапа'
       EditLabel.ParentColor = False
+      EditLabel.ParentFont = False
       LabelPosition = lpLeft
+      ParentFont = False
       TabOrder = 0
     end
     object BitBtn3: TBitBtn
-      Left = 726
-      Height = 27
+      Left = 608
+      Height = 23
       Top = -2
-      Width = 78
+      Width = 65
       Anchors = [akTop, akRight]
       Caption = 'Выбрать'
       OnClick = BitBtn3Click
+      ParentFont = False
       TabOrder = 1
     end
     object SpinEdit1: TSpinEdit
-      Left = 113
+      Left = 94
       Height = 27
-      Top = 30
-      Width = 60
+      Top = 25
+      Width = 50
       MinValue = 1
+      ParentFont = False
       TabOrder = 2
       Value = 3
     end
     object Label1: TLabel
-      Left = 33
-      Height = 19
-      Top = 30
+      Left = 28
+      Height = 14
+      Top = 25
       Width = 73
       Caption = 'Количество'
       ParentColor = False
+      ParentFont = False
     end
   end
   object SelectDirectoryDialog1: TSelectDirectoryDialog
     Options = [ofReadOnly, ofEnableSizing, ofViewDetail]
-    left = 512
-    top = 392
+    left = 427
+    top = 327
   end
   object OpenDialog1: TOpenDialog
-    Filter = '*.cfu;*.cf|*.cfu;*.cf|*.exe|*.exe|*.cf;*.cfe|*.cf;*.cfe|*.dt|*.dt'
-    left = 312
-    top = 392
+    Filter = '*.cfu;*.cf|*.cfu;*.cf|*.exe|*.exe|*.cf;*.cfe|*.cf;*.cfe|*.dt|*.dt|all|*'
+    Options = [ofFileMustExist, ofEnableSizing, ofViewDetail]
+    left = 260
+    top = 327
   end
   object Process1: TProcess
     Active = False
@@ -272,12 +302,12 @@ object Form1: TForm1
     WindowTop = 0
     WindowWidth = 0
     FillAttribute = 0
-    left = 424
-    top = 320
+    left = 354
+    top = 267
   end
   object PopupMenu1: TPopupMenu
-    left = 536
-    top = 336
+    left = 447
+    top = 280
     object MenuItem1: TMenuItem
       Caption = 'Добавить'
       OnClick = MenuItem1Click
@@ -292,8 +322,8 @@ object Form1: TForm1
     end
   end
   object MainMenu1: TMainMenu
-    left = 288
-    top = 304
+    left = 240
+    top = 254
     object MenuItem9: TMenuItem
       Caption = 'Информационная база'
       object MenuItem6: TMenuItem
@@ -369,8 +399,8 @@ object Form1: TForm1
     end
   end
   object PopupMenu2: TPopupMenu
-    left = 144
-    top = 304
+    left = 120
+    top = 254
     object MenuItem16: TMenuItem
       Caption = 'Информационная база'
       object MenuItem17: TMenuItem
@@ -443,8 +473,8 @@ object Form1: TForm1
     Date = 44238
     OKCaption = '&ОК'
     CancelCaption = 'Отмена'
-    left = 480
-    top = 280
+    left = 401
+    top = 234
   end
   object SomeProc: TProcess
     Active = False
@@ -459,7 +489,7 @@ object Form1: TForm1
     WindowTop = 0
     WindowWidth = 0
     FillAttribute = 0
-    left = 648
-    top = 296
+    left = 541
+    top = 247
   end
 end

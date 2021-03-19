@@ -7,7 +7,7 @@ interface
 uses
   Classes, SysUtils, process, Forms, Controls, Dialogs, ExtCtrls, StdCtrls,
   Buttons, Menus, ComCtrls, ActnList, Spin, ExtDlgs, FileUtil, IniFiles,
-  Windows, lazutf8, TypInfo, CheckAndRepairForm;
+  lazutf8, LCLIntf, TypInfo, CheckAndRepairForm;
 
 const
   Version: string = '2.2.5';
@@ -228,7 +228,7 @@ begin
       F.Position := F.Size;
       F.Write(PStr^, LengthLogString);
       Form1.Memo1.Lines.AddText(Str);
-      SendMessage(Form1.Memo1.Handle, EM_LINESCROLL, 0, Form1.Memo1.Lines.Count);
+      //SendMessage(Form1.Memo1.Handle, EM_LINESCROLL, 0, Form1.Memo1.Lines.Count);
     except
       MessageDlg(Form1.Caption, LogString, mtError, [mbYes], 0);
       Exit;
@@ -316,7 +316,7 @@ begin
               param := params[1];
             listbox2.ClearSelection;
             ListBox2.Selected[i] := True;
-            ExecuteBaseAction(TbaseAction(ListBox2.Items.Objects[i]), param);
+            ExecuteBaseAction(TbaseAction(PtrInt(ListBox2.Items.Objects[i])), param);
             Inc(currentTask);
             progress := currentTask * 100 div totalTasks;
           end;
@@ -857,7 +857,7 @@ begin
     ini.WriteString(SectionUpdates, IntToStr(i), ListBox1.Items[i]);
   ini.EraseSection(SectionMacro);
   for i := 0 to ListBox2.Count - 1 do
-    ini.WriteString(SectionMacro, Format('%d_%d', [i, Ord(TBaseAction(ListBox2.Items.Objects[i]))]),
+    ini.WriteString(SectionMacro, Format('%d_%d', [i, Ord(TBaseAction(PtrInt(ListBox2.Items.Objects[i])))]),
       ListBox2.Items[i]);
 end;
 
@@ -935,7 +935,7 @@ begin
   try
     ini.ReadSectionValues(SectionMacro, list);
     for i := 0 to list.Count - 1 do
-      ListBox2.AddItem(list.ValueFromIndex[i], TObject(TBaseAction(StrToInt(list.Names[i].Split('_')[1]))));
+      ListBox2.AddItem(list.ValueFromIndex[i], TObject(PtrInt(TBaseAction(StrToInt(list.Names[i].Split('_')[1])))));
   finally
     list.Free;
   end;
