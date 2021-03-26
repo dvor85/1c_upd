@@ -1,0 +1,8 @@
+backup/
+lib/
+logs/
+__pycache__/
+.settings/
+*.ini
+*.lgd
+*.glade~
