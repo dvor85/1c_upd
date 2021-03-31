@@ -63,6 +63,7 @@
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
                         <property name="label" translatable="yes">Запустить 1С</property>
+                        <signal name="activate" handler="on_runEnterprise" swapped="no"/>
                       </object>
                     </child>
                     <child>
@@ -703,7 +704,6 @@
                         <property name="can_focus">True</property>
                         <property name="editable">False</property>
                         <property name="buffer">logs_textbuffer</property>
-                        <property name="monospace">True</property>
                       </object>
                     </child>
                   </object>

@@ -6,7 +6,7 @@ import sys
 import os
 from logging.handlers import RotatingFileHandler as RFHandler
 
-_log_format = f"%(asctime)-19s: %(name)s[%(module)s->%(funcName)s]: %(levelname)s: %(message)s"
+_log_format = f"%(asctime)-20s %(levelname)7s: [%(module)s->%(funcName)s]: %(message)s"
 
 
 # def get_file_handler(logfile):
@@ -54,11 +54,17 @@ class Logger(logging.Logger):
             for h in self.handlers:
                 h.close()
 
-    def _log(self, level, msg, args, exc_info=None, extra=None, stack_info=False,
-             stacklevel=1, **kwargs):
-        logging.Logger._log(self, level, msg, args, exc_info=exc_info, extra=extra, stack_info=stack_info, stacklevel=stacklevel)
-        if 'callback' in kwargs:
-            kwargs['callback'](msg)
+
+class MyHandler(logging.Handler):
+    terminator = '\n'
+
+    def __init__(self, callback):
+        logging.Handler.__init__(self, level=logging.INFO)
+        self.callback = callback
+        self.setFormatter(logging.Formatter(_log_format))
+
+    def emit(self, record):
+        self.callback(self.format(record) + self.terminator)
 
 
 def get_logger(name, logfile=None, level=logging.NOTSET, callback=None):
@@ -75,5 +81,9 @@ def get_logger(name, logfile=None, level=logging.NOTSET, callback=None):
         rfh = RFHandler(filename=logfile, maxBytes=1024 * 1024, backupCount=2)
         rfh.setFormatter(logging.Formatter(_log_format))
         log.addHandler(rfh)
+
+    if callback is not None:
+        mh = MyHandler(callback)
+        log.addHandler(mh)
 
     return log

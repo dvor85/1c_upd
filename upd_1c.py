@@ -10,11 +10,30 @@ import config
 from pathlib import Path
 import os
 import base64
+import threading
+import subprocess
 import gi
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk  # @IgnorePep8
 
 global log
+
+BaseActions = dict(ba_update=0, ba_dumpib=1, ba_restoreib=2, ba_dumpcfg=3,
+                   ba_loadcfg=4, ba_check=5, ba_enterprise=6, ba_config=7, ba_cache=8, ba_journal=9, ba_integrity=10,
+                   ba_physical=11, ba_macro=12, ba_convert=13)
+
+
+class MyThread(threading.Thread):
+    def __init__(self, group=None, target=None, name=None,
+                 args=(), kwargs=None, *, daemon=None):
+        threading.Thread.__init__(self, group=group, target=target, name=name, args=args, kwargs=kwargs)
+        self.daemon = True
+
+    def run(self):
+        try:
+            threading.Thread.run(self)
+        except Exception as e:
+            log.info(e)
 
 
 class Mainform():
@@ -40,14 +59,15 @@ class Mainform():
         self.create()
         self.logfile = self.ini[config.SectionMain].get(
             config.KeyLogFile, Path(os.path.dirname(__file__)) / 'logs' / 'upd_1c.log')
-        log = logger.get_logger(__name__, self.logfile, logging.INFO)
-        log.info('started!', callback=self.logs_callback)
+        global log
+        log = logger.get_logger(__name__, self.logfile, level=logging.DEBUG, callback=self.logs_callback)
+        log.info('Started')
+        self.main_thread = None
 
     def logs_callback(self, msg):
         self.logs_textbuffer.insert(self.logs_textbuffer.get_end_iter(), msg)
 
     def create(self):
-        log = logger.get_logger('upd_1c', level=logging.DEBUG)
         self.wmain.set_title('Upd_1c')
         ini_file = Path(os.path.dirname(__file__)) / 'upd_1c.ini'
         self.status_bar.push(1, str(ini_file))
@@ -83,6 +103,29 @@ class Mainform():
         filter_any.set_name("Any files")
         filter_any.add_pattern("*")
         dialog.add_filter(filter_any)
+
+    def runEnterprise(self, widget):
+        log.info('{n}'.format(n=widget.get_label()))
+        proc = [self.exe_path_edit.get_text()]
+        proc.append('ENTERPRISE')
+        proc.append('/DisableStartupMessages')
+        proc.append('/DisableSplash')
+        proc.append('/F"' + self.base_path_edit.get_text() + '"')
+        proc.append('/N"' + self.UserE.get_text() + '"')
+        proc.append('/P"' + self.PassE.get_text() + '"')
+        proc.append('/Out "' + str(self.logfile) + '" -NoTruncate')
+        try:
+            subprocess.check_call(proc)
+        except Exception as e:
+            log.error('Команда "{n}" завершена с ошибкой'.format(n=widget.get_label()))
+            raise e
+
+    def on_runEnterprise(self, widget):
+        if self.main_thread is None or not self.main_thread.is_alive():
+            self.main_thread = MyThread(target=self.runEnterprise, name=__name__, args=(widget,))
+            self.main_thread.start()
+        else:
+            log.info('"{n}" уже запущено. Дождитесь завершения!'.format(n=widget.get_label()))
 
     def on_exe_path_btn_clicked(self, widget):
         dialog = Gtk.FileChooserDialog(
