@@ -12,7 +12,9 @@ import os
 import base64
 import threading
 import subprocess
+import datetime
 import gi
+from time import strftime
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk  # @IgnorePep8
 
@@ -98,95 +100,256 @@ class Mainform():
     def onDestroy(self, *args):
         Gtk.main_quit()
 
+    def macrosAction(self, action, param=None, *args, **kwargs):
+        title = 'Команда'
+        try:
+            if action == BaseActions['ba_update']:
+                # log.info('Установка обновления {u}'.format(u=''))
+              # case baseAction of
+                # ba_update:
+                # begin
+                  # for i := 0 to ListBox1.Count - 1 do
+                  # begin
+                    # ListBox1.ClearSelection;
+                    # ListBox1.Selected[i] := True;
+                    # Caption := 'Установка обновления';
+                    # AddLog(LogFile, Format('%s: "%s"', [Caption, ListBox1.Items[i]]));
+                    # if not updateBase(ListBox1.Items[i], (i = ListBox1.Count - 1)) then
+                      # raise Exception.Create('Ошибка обновления!');
+                    # Inc(currentTask);
+                  # end;
+                  # ListBox1.ClearSelection;
+                # end;
+                pass
+
+            elif action == BaseActions['ba_dumpib']:
+                title = 'Выгрузка информационной базы'
+                log.info(title)
+                log.debug('файл: {}'.format(param))
+                self.run_1c('DESIGNER', ['/DumpIB', param])
+
+                log.info('{} завершена!'.format(title))
+
+                # DeleteOld(IncludeTrailingBackslash(ExpandFileName(LabeledEdit1.Text)), '*.dt', SpinEdit1.Value);
+            elif action == BaseActions['ba_restoreib']:
+                title = 'Загрузка информационной базы'
+                log.info('{} "{}"'.format(title, param))
+                if param is not None:
+                    self.run_1c('DESIGNER', ['/RestoreIB', param])
+                log.info('{} завершена!'.format(title))
+            elif action == BaseActions['ba_dumpcfg']:
+                title = 'Выгрузка конфигурации'
+                log.info('{} "{}"'.format(title, param))
+                if param is not None:
+                    self.run_1c('DESIGNER', ['/DumpCFG', param])
+                log.info('{} завершена!'.format(title))
+                # DeleteOld(IncludeTrailingBackslash(ExpandFileName(LabeledEdit1.Text)), '*.cf', SpinEdit1.Value);
+            elif action == BaseActions['ba_loadcfg']:
+                # Caption := 'Загрузка конфигурации';
+                # AddLog(LogFile, Format('%s "%s"', [Caption, param]));
+                # if ExtractFileExt(param) = '.cfe' then
+                    # Caption := 'Загрузка расширения';
+                # AddLog(LogFile, Format('%s "%s"', [Caption, param]));
+                # if (param = '') or (not loadCFG(param)) then
+                    # raise Exception.Create('Ошибка ' + Caption + '!');
+                # Caption := Caption + ' успешно завершено!';
+                # AddLog(LogFile, Caption);
+                # end;
+                pass
+            elif action == BaseActions['ba_check']:
+                # Caption := 'Тестирование и исправление базы';
+                # AddLog(LogFile, Caption);
+                # if not CheckAndRepair(param) then
+                    # raise Exception.Create(Caption + ' завершено с ошибкой!');
+                # Caption := Caption + ' успешно завершено!';
+                # AddLog(LogFile, Caption);
+                # end;
+                pass
+            elif action == BaseActions['ba_enterprise']:
+
+                title = 'Запуск в режиме ENTERPRISE'
+                log.info(title)
+                self.run_1c('ENTERPRISE')
+                log.info('{} успешно завершен!'.format(title))
+            elif action == BaseActions['ba_config']:
+                title = 'Запуск в режиме конфигуратора'
+                log.info(title)
+                self.run_1c('DESIGNER')
+                log.info('{} успешно завершен!'.format(title))
+
+            elif action == BaseActions['ba_integrity']:
+                # :
+                # begin
+                # Caption := 'Восстановление структуры информационной базы';
+                # AddLog(LogFile, Caption);
+                # if not IBRestoreIntegrity() then
+                    # raise Exception.Create(Caption + ' завершено с ошибкой!');
+                # Caption := Caption + ' успешно завершено!';
+                # AddLog(LogFile, Caption);
+                # end;
+                pass
+            elif action == BaseActions['ba_physical']:
+                # begin
+                # Caption := 'Восстановление физической целостности';
+                # AddLog(LogFile, Caption);
+                # if not CheckPhysicalIntegrity() then
+                    # raise Exception.Create(Caption + ' завершено с ошибкой!');
+                # Caption := Caption + ' успешно завершено!';
+                # AddLog(LogFile, Caption);
+                # end;
+                pass
+            elif action == BaseActions['ba_cache']:
+                # ba_cache:
+                # begin
+                # Caption := 'Очистка кэша';
+                # AddLog(LogFile, Caption);
+                # if not ClearCache() then
+                    # raise Exception.Create(Caption + ' завершена с ошибкой!');
+                # Caption := Caption + ' успешно завершена!';
+                # AddLog(LogFile, Caption);
+                # end;
+                pass
+            elif action == BaseActions['ba_convert']:
+                # begin
+                # Caption := 'Конвертация файловой ИБ в новый формат';
+                # AddLog(LogFile, Caption);
+                # if not ConvertFileBase() then
+                    # raise Exception.Create(Caption + ' завершена с ошибкой!');
+                # Caption := Caption + ' успешно завершена!';
+                # AddLog(LogFile, Caption);
+                # end;
+                pass
+            elif action == BaseActions['ba_journal']:
+                # ba_journal:
+                # begin
+                # Caption := 'Сокращение журнала регистрации';
+                # if not param.IsEmpty then
+                # begin
+                    # AddLog(LogFile, Format('%s "%s"', [Caption, param]));
+                    # if not ReduceEventLogSize(param) then
+                    # raise Exception.Create(Caption + ' завершено с ошибкой!');
+                    # Caption := Caption + ' успешно завершено!';
+                    # AddLog(LogFile, Caption);
+                    # DeleteOld(IncludeTrailingBackslash(ExpandFileName(LabeledEdit1.Text)), '*.lgd', SpinEdit1.Value);
+                # end;
+                # end;
+                pass
+        except Exception as e:
+            log.info('"{}" завершена с ошибкой!'.format(title))
+            log.debug(e)
+
+    def run_1c(self, mode, params=None):
+        proc = [self.exe_path_edit.get_text()]
+        proc.append(mode)
+        proc.append('/DisableStartupMessages')
+        proc.append('/DisableStartupDialogs')
+        proc.append('/DisableSplash')
+        if params is not None:
+            proc.extend(params)
+        proc.append('/F"' + self.base_path_edit.get_text() + '"')
+        proc.append('/N"' + self.UserE.get_text() + '"')
+        proc.append('/P"' + self.PassE.get_text() + '"')
+        proc.append('/Out "' + str(self.logfile) + '" -NoTruncate')
+        subprocess.check_call(proc)
+
+    def on_updateIB(self, widget):
+        if self.main_thread is None or not self.main_thread.is_alive():
+            self.main_thread = MyThread(target=self.macrosAction, name=__name__, args=())
+            self.main_thread.start()
+        else:
+            log.info('"{n}" уже запущено. Дождитесь завершения!'.format(n=widget.get_label()))
+
+    def on_runEnterprise(self, widget):
+        if self.main_thread is None or not self.main_thread.is_alive():
+            self.main_thread = MyThread(target=self.macrosAction, name=__name__, args=(BaseActions['ba_enterprise'],))
+            self.main_thread.start()
+        else:
+            log.info('"{n}" уже запущено. Дождитесь завершения!'.format(n=widget.get_label()))
+
+    def on_runDesigner(self, widget):
+        if self.main_thread is None or not self.main_thread.is_alive():
+            self.main_thread = MyThread(target=self.macrosAction, name=__name__, args=(BaseActions['ba_config'],))
+            self.main_thread.start()
+        else:
+            log.info('"{n}" уже запущено. Дождитесь завершения!'.format(n=widget.get_label()))
+
+    def on_dumpIB(self, widget):
+        if self.main_thread is None or not self.main_thread.is_alive():
+            fn = Path(self.bak_path_edit.get_text()) / datetime.datetime.today().strftime('%d.%m.%Y_%H.%M.%S.dt')
+            Path(self.bak_path_edit.get_text()).mkdir(parents=True, exist_ok=True)
+            self.main_thread = MyThread(target=self.macrosAction, name=__name__, args=(BaseActions['ba_dumpib'], str(fn)))
+            self.main_thread.start()
+        else:
+            log.info('"{n}" уже запущено. Дождитесь завершения!'.format(n=widget.get_label()))
+
+    def on_restoreIB(self, widget):
+        if self.main_thread is None or not self.main_thread.is_alive():
+            fn = self.ChooserDialog(widget, filename=self.bak_path_edit.get_text())
+            if fn:
+                self.main_thread = MyThread(target=self.macrosAction, name=__name__, args=(BaseActions['ba_restoreib'], fn))
+                self.main_thread.start()
+        else:
+            log.info('"{n}" уже запущено. Дождитесь завершения!'.format(n=widget.get_label()))
+
+    def on_dumpCFG(self, widget):
+        if self.main_thread is None or not self.main_thread.is_alive():
+            fn = Path(self.bak_path_edit.get_text()) / datetime.datetime.today().strftime('%d.%m.%Y_%H.%M.%S.cf')
+            os.makedirs(str(fn), exist_ok=True)
+            self.main_thread = MyThread(target=self.macrosAction, name=__name__, args=(BaseActions['ba_dumbcfg'], str(fn)))
+            self.main_thread.start()
+        else:
+            log.info('"{n}" уже запущено. Дождитесь завершения!'.format(n=widget.get_label()))
+
+    def on_loadCFG(self, widget):
+        if self.main_thread is None or not self.main_thread.is_alive():
+            fn = self.on_bak_path_btn_clicked(widget)
+            self.main_thread = MyThread(target=self.macrosAction, name=__name__, args=(BaseActions['ba_restoreib'], fn))
+            self.main_thread.start()
+        else:
+            log.info('"{n}" уже запущено. Дождитесь завершения!'.format(n=widget.get_label()))
+
     def add_filters(self, dialog):
         filter_any = Gtk.FileFilter()
         filter_any.set_name("Any files")
         filter_any.add_pattern("*")
         dialog.add_filter(filter_any)
 
-    def runEnterprise(self, widget):
-        log.info('{n}'.format(n=widget.get_label()))
-        proc = [self.exe_path_edit.get_text()]
-        proc.append('ENTERPRISE')
-        proc.append('/DisableStartupMessages')
-        proc.append('/DisableSplash')
-        proc.append('/F"' + self.base_path_edit.get_text() + '"')
-        proc.append('/N"' + self.UserE.get_text() + '"')
-        proc.append('/P"' + self.PassE.get_text() + '"')
-        proc.append('/Out "' + str(self.logfile) + '" -NoTruncate')
+    def ChooserDialog(self, widget, action=Gtk.FileChooserAction.OPEN, filename=None, filter=None):
+        dialog = Gtk.FileChooserDialog(
+            title="Please choose a file", parent=None, action=action
+        )
         try:
-            subprocess.check_call(proc)
-        except Exception as e:
-            log.error('Команда "{n}" завершена с ошибкой'.format(n=widget.get_label()))
-            raise e
+            dialog.add_buttons(
+                Gtk.STOCK_CANCEL,
+                Gtk.ResponseType.CANCEL,
+                Gtk.STOCK_OPEN,
+                Gtk.ResponseType.OK,
+            )
+            if filename:
+                dialog.set_filename(filename)
 
-    def on_runEnterprise(self, widget):
-        if self.main_thread is None or not self.main_thread.is_alive():
-            self.main_thread = MyThread(target=self.runEnterprise, name=__name__, args=(widget,))
-            self.main_thread.start()
-        else:
-            log.info('"{n}" уже запущено. Дождитесь завершения!'.format(n=widget.get_label()))
+            self.add_filters(dialog)
+
+            response = dialog.run()
+            if response == Gtk.ResponseType.OK:
+                return dialog.get_filename()
+        finally:
+            dialog.destroy()
 
     def on_exe_path_btn_clicked(self, widget):
-        dialog = Gtk.FileChooserDialog(
-            title="Please choose a file", parent=None, action=Gtk.FileChooserAction.OPEN
-        )
-        dialog.add_buttons(
-            Gtk.STOCK_CANCEL,
-            Gtk.ResponseType.CANCEL,
-            Gtk.STOCK_OPEN,
-            Gtk.ResponseType.OK,
-        )
-        dialog.set_filename(self.exe_path_edit.get_text())
-
-        self.add_filters(dialog)
-
-        response = dialog.run()
-        if response == Gtk.ResponseType.OK:
-            self.exe_path_edit.set_text(dialog.get_filename())
-        elif response == Gtk.ResponseType.CANCEL:
-            print("Cancel clicked")
-
-        dialog.destroy()
+        fn = self.ChooserDialog(widget, filename=self.exe_path_edit.get_text())
+        if fn:
+            self.exe_path_edit.set_text(fn)
 
     def on_base_path_btn_clicked(self, widget):
-        dialog = Gtk.FileChooserDialog(
-            title="Please choose a file", parent=None, action=Gtk.FileChooserAction.SELECT_FOLDER
-        )
-        dialog.add_buttons(
-            Gtk.STOCK_CANCEL,
-            Gtk.ResponseType.CANCEL,
-            Gtk.STOCK_OPEN,
-            Gtk.ResponseType.OK,
-        )
-        dialog.set_filename(self.base_path_edit.get_text())
-        response = dialog.run()
-        if response == Gtk.ResponseType.OK:
-            self.base_path_edit.set_text(dialog.get_filename())
-        elif response == Gtk.ResponseType.CANCEL:
-            print("Cancel clicked")
-
-        dialog.destroy()
+        fn = self.ChooserDialog(widget, action=Gtk.FileChooserAction.SELECT_FOLDER, filename=self.base_path_edit.get_text())
+        if fn:
+            self.base_path_edit.set_text(fn)
 
     def on_bak_path_btn_clicked(self, widget):
-        dialog = Gtk.FileChooserDialog(
-            title="Please choose a file", parent=None, action=Gtk.FileChooserAction.SELECT_FOLDER
-        )
-
-        dialog.add_buttons(
-            Gtk.STOCK_CANCEL,
-            Gtk.ResponseType.CANCEL,
-            Gtk.STOCK_OPEN,
-            Gtk.ResponseType.OK,
-        )
-        dialog.set_filename(self.bak_path_edit.get_text())
-        response = dialog.run()
-        if response == Gtk.ResponseType.OK:
-            self.bak_path_edit.set_text(dialog.get_filename())
-        elif response == Gtk.ResponseType.CANCEL:
-            print("Cancel clicked")
-
-        dialog.destroy()
+        fn = self.ChooserDialog(widget, action=Gtk.FileChooserAction.SELECT_FOLDER, filename=self.bak_path_edit.get_text())
+        if fn:
+            self.bak_path_edit.set_text(fn)
 
 
 Mainform().loop()

@@ -72,6 +72,7 @@
                         <property name="can_focus">False</property>
                         <property name="label" translatable="yes">Запустить конфигуратор</property>
                         <property name="use_underline">True</property>
+                        <signal name="activate" handler="on_runDesigner" swapped="no"/>
                       </object>
                     </child>
                     <child>
@@ -80,6 +81,7 @@
                         <property name="can_focus">False</property>
                         <property name="label" translatable="yes">Выгрузить ИБ</property>
                         <property name="use_underline">True</property>
+                        <signal name="activate" handler="on_dumpIB" swapped="no"/>
                       </object>
                     </child>
                     <child>
@@ -88,6 +90,7 @@
                         <property name="can_focus">False</property>
                         <property name="label" translatable="yes">Загрузить ИБ</property>
                         <property name="use_underline">True</property>
+                        <signal name="activate" handler="on_restoreIB" swapped="no"/>
                       </object>
                     </child>
                     <child>
@@ -704,7 +707,6 @@
                         <property name="can_focus">True</property>
                         <property name="editable">False</property>
                         <property name="buffer">logs_textbuffer</property>
-                        <property name="monospace">True</property>
                       </object>
                     </child>
                   </object>

@@ -72,6 +72,7 @@
                         <property name="can_focus">False</property>
                         <property name="label" translatable="yes">Запустить конфигуратор</property>
                         <property name="use_underline">True</property>
+                        <signal name="activate" handler="on_runDesigner" swapped="no"/>
                       </object>
                     </child>
                     <child>
@@ -80,6 +81,7 @@
                         <property name="can_focus">False</property>
                         <property name="label" translatable="yes">Выгрузить ИБ</property>
                         <property name="use_underline">True</property>
+                        <signal name="activate" handler="on_dumpIB" swapped="no"/>
                       </object>
                     </child>
                     <child>
@@ -88,6 +90,7 @@
                         <property name="can_focus">False</property>
                         <property name="label" translatable="yes">Загрузить ИБ</property>
                         <property name="use_underline">True</property>
+                        <signal name="activate" handler="on_restoreIB" swapped="no"/>
                       </object>
                     </child>
                     <child>
@@ -96,6 +99,7 @@
                         <property name="can_focus">False</property>
                         <property name="label" translatable="yes">Выполнить обновление</property>
                         <property name="use_underline">True</property>
+                        <signal name="activate" handler="on_updateIB" swapped="no"/>
                       </object>
                     </child>
                     <child>
@@ -162,6 +166,7 @@
                                 <property name="can_focus">False</property>
                                 <property name="label" translatable="yes">Выгрузить конфигурацию</property>
                                 <property name="use_underline">True</property>
+                                <signal name="activate" handler="on_dumpCFG" swapped="no"/>
                               </object>
                             </child>
                             <child>
