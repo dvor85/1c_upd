@@ -14,15 +14,17 @@ import threading
 import subprocess
 import datetime
 import gi
-from time import strftime
+import re
+from pickle import NONE
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk  # @IgnorePep8
 
 global log
 
 BaseActions = dict(ba_update=0, ba_dumpib=1, ba_restoreib=2, ba_dumpcfg=3,
-                   ba_loadcfg=4, ba_check=5, ba_enterprise=6, ba_config=7, ba_cache=8, ba_journal=9, ba_integrity=10,
-                   ba_physical=11, ba_macro=12, ba_convert=13)
+                   ba_loadcfg=4, ba_check=5, ba_enterprise=6, ba_config=7,
+                   ba_cache=8, ba_journal=9, ba_integrity=10, ba_physical=11,
+                   ba_macro=12, ba_convert=13, ba_updatecfg=14)
 
 
 class MyThread(threading.Thread):
@@ -55,8 +57,6 @@ class Mainform():
         self.page_size_edit = builder.get_object('page_size_edit')
         self.macros_list = builder.get_object('macros_list')
         self.macros_liststore = builder.get_object('macros_liststore')
-        self.updates_list = builder.get_object('updates_list')
-        self.updates_liststore = builder.get_object('updates_liststore')
         self.logs_textbuffer = builder.get_object('logs_textbuffer')
         self.create()
         self.logfile = self.ini[config.SectionMain].get(
@@ -88,12 +88,6 @@ class Mainform():
         column = Gtk.TreeViewColumn("Title", renderer, text=1)
         self.macros_list.append_column(column)
 
-        for i in self.ini[config.SectionUpdates].items():
-            self.updates_liststore.append(list(i))
-        renderer = Gtk.CellRendererText()
-        column = Gtk.TreeViewColumn("Title", renderer, text=1)
-        self.updates_list.append_column(column)
-
     def loop(self):
         self.wmain.show_all()
 
@@ -101,10 +95,31 @@ class Mainform():
         Gtk.main_quit()
 
     def macrosAction(self, action, param=None, *args, **kwargs):
-        title = 'Команда'
+
         try:
-            if action == BaseActions['ba_update']:
-                # log.info('Установка обновления {u}'.format(u=''))
+            if action == BaseActions['ba_macro']:
+                title = 'Макрос запущен'
+                for (key, val) in self.macros_liststore:
+                    # key = row[0]
+                    # val = row[1]
+                    act = key.split('_')[1]
+                    v_p = re.split('\(|\)', val)
+                    if len(v_p) > 1:
+                        par = v_p[1]
+                    log.info('{} "{}"'.format(v_p[0], par))
+                    # self.macrosAction(act, par)
+
+            elif action == BaseActions['ba_update']:
+                if param is not None:
+                    title = 'Установка обновления'
+                    log.info('{} "{}"'.format(title, param))
+                    self.run_1c('DESIGNER', ['/UpdateCfg', param])
+                    log.info('{} завершено!'.format(title))
+                    # for row in self.macros_liststore:
+                    # for k, v in row:
+                    # # act = k.split('_')[1]
+                    # param = re.split('(|)', v)[1]
+                    # log.info('{} "{}"'.format(title, param))
               # case baseAction of
                 # ba_update:
                 # begin
@@ -115,13 +130,19 @@ class Mainform():
                     # Caption := 'Установка обновления';
                     # AddLog(LogFile, Format('%s: "%s"', [Caption, ListBox1.Items[i]]));
                     # if not updateBase(ListBox1.Items[i], (i = ListBox1.Count - 1)) then
-                      # raise Exception.Create('Ошибка обновления!');
+                    # raise Exception.Create('Ошибка обновления!');
                     # Inc(currentTask);
                   # end;
                   # ListBox1.ClearSelection;
                 # end;
                 pass
 
+            elif action == BaseActions['ba_updatecfg']:
+                title = 'Обновление конфигурации'
+                log.info('{}'.format(title))
+                if param is not None:
+                    self.run_1c('DESIGNER', ['/UpdateDBCfg'])
+                log.info('{} завершена!'.format(title))
             elif action == BaseActions['ba_dumpib']:
                 title = 'Выгрузка информационной базы'
                 log.info(title)
@@ -145,17 +166,16 @@ class Mainform():
                 log.info('{} завершена!'.format(title))
                 # DeleteOld(IncludeTrailingBackslash(ExpandFileName(LabeledEdit1.Text)), '*.cf', SpinEdit1.Value);
             elif action == BaseActions['ba_loadcfg']:
-                # Caption := 'Загрузка конфигурации';
-                # AddLog(LogFile, Format('%s "%s"', [Caption, param]));
-                # if ExtractFileExt(param) = '.cfe' then
-                    # Caption := 'Загрузка расширения';
-                # AddLog(LogFile, Format('%s "%s"', [Caption, param]));
-                # if (param = '') or (not loadCFG(param)) then
-                    # raise Exception.Create('Ошибка ' + Caption + '!');
-                # Caption := Caption + ' успешно завершено!';
-                # AddLog(LogFile, Caption);
-                # end;
-                pass
+                title = 'Загрузка конфигурации'
+                if param is not None:
+                    ext_params = []
+                    if param.endwith(".cfe"):
+                        title = 'Загрузка расширения'
+                        ext_params.append("-Extension")
+                        ext_params.append(param.replace(".cfe", ""))
+                    log.info('{} "{}"'.format(title, param))
+                    self.run_1c('DESIGNER', ['/LoadCfg', param] + ext_params)
+                    log.info('{} завершена!'.format(title))
             elif action == BaseActions['ba_check']:
                 # Caption := 'Тестирование и исправление базы';
                 # AddLog(LogFile, Caption);
@@ -178,16 +198,10 @@ class Mainform():
                 log.info('{} успешно завершен!'.format(title))
 
             elif action == BaseActions['ba_integrity']:
-                # :
-                # begin
-                # Caption := 'Восстановление структуры информационной базы';
-                # AddLog(LogFile, Caption);
-                # if not IBRestoreIntegrity() then
-                    # raise Exception.Create(Caption + ' завершено с ошибкой!');
-                # Caption := Caption + ' успешно завершено!';
-                # AddLog(LogFile, Caption);
-                # end;
-                pass
+                title = 'Восстановление структуры информационной базы'
+                log.info(title)
+                self.run_1c('DESIGNER', ['/IBRestoreIntegrity'])
+                log.info('{} завершено!'.format(title))
             elif action == BaseActions['ba_physical']:
                 # begin
                 # Caption := 'Восстановление физической целостности';
@@ -252,9 +266,25 @@ class Mainform():
         proc.append('/Out "' + str(self.logfile) + '" -NoTruncate')
         subprocess.check_call(proc)
 
+    def on_runMacro(self, widget):
+        if self.main_thread is None or not self.main_thread.is_alive():
+            self.main_thread = MyThread(target=self.macrosAction, name=__name__, args=(BaseActions['ba_macro'], ))
+            self.main_thread.start()
+        else:
+            log.info('"{n}" уже запущено. Дождитесь завершения!'.format(n=widget.get_label()))
+
     def on_updateIB(self, widget):
         if self.main_thread is None or not self.main_thread.is_alive():
-            self.main_thread = MyThread(target=self.macrosAction, name=__name__, args=())
+            fn = self.ChooserDialog(widget, filename=self.bak_path_edit.get_text(), pattern="*.cf|*.cfu")
+            if fn:
+                self.main_thread = MyThread(target=self.macrosAction, name=__name__, args=(BaseActions['ba_update'], fn))
+                self.main_thread.start()
+        else:
+            log.info('"{n}" уже запущено. Дождитесь завершения!'.format(n=widget.get_label()))
+
+    def on_updateCFG(self, widget):
+        if self.main_thread is None or not self.main_thread.is_alive():
+            self.main_thread = MyThread(target=self.macrosAction, name=__name__, args=(BaseActions['ba_updatecfg'],))
             self.main_thread.start()
         else:
             log.info('"{n}" уже запущено. Дождитесь завершения!'.format(n=widget.get_label()))
@@ -284,7 +314,7 @@ class Mainform():
 
     def on_restoreIB(self, widget):
         if self.main_thread is None or not self.main_thread.is_alive():
-            fn = self.ChooserDialog(widget, filename=self.bak_path_edit.get_text())
+            fn = self.ChooserDialog(widget, filename=self.bak_path_edit.get_text(), pattern="*.dt")
             if fn:
                 self.main_thread = MyThread(target=self.macrosAction, name=__name__, args=(BaseActions['ba_restoreib'], fn))
                 self.main_thread.start()
@@ -294,7 +324,7 @@ class Mainform():
     def on_dumpCFG(self, widget):
         if self.main_thread is None or not self.main_thread.is_alive():
             fn = Path(self.bak_path_edit.get_text()) / datetime.datetime.today().strftime('%d.%m.%Y_%H.%M.%S.cf')
-            os.makedirs(str(fn), exist_ok=True)
+            Path(self.bak_path_edit.get_text()).mkdir(parents=True, exist_ok=True)
             self.main_thread = MyThread(target=self.macrosAction, name=__name__, args=(BaseActions['ba_dumbcfg'], str(fn)))
             self.main_thread.start()
         else:
@@ -302,19 +332,27 @@ class Mainform():
 
     def on_loadCFG(self, widget):
         if self.main_thread is None or not self.main_thread.is_alive():
-            fn = self.on_bak_path_btn_clicked(widget)
-            self.main_thread = MyThread(target=self.macrosAction, name=__name__, args=(BaseActions['ba_restoreib'], fn))
+            fn = self.ChooserDialog(widget, filename=self.bak_path_edit.get_text(), pattern="*.cf|*.cfe")
+            if fn:
+                self.main_thread = MyThread(target=self.macrosAction, name=__name__, args=(BaseActions['ba_restoreib'], fn))
+                self.main_thread.start()
+        else:
+            log.info('"{n}" уже запущено. Дождитесь завершения!'.format(n=widget.get_label()))
+
+    def on_IBRestoreIntegrity(self, widget):
+        if self.main_thread is None or not self.main_thread.is_alive():
+            self.main_thread = MyThread(target=self.macrosAction, name=__name__, args=(BaseActions['ba_integrity'],))
             self.main_thread.start()
         else:
             log.info('"{n}" уже запущено. Дождитесь завершения!'.format(n=widget.get_label()))
 
-    def add_filters(self, dialog):
-        filter_any = Gtk.FileFilter()
-        filter_any.set_name("Any files")
-        filter_any.add_pattern("*")
-        dialog.add_filter(filter_any)
+    def add_filters(self, dialog, pattern=None):
+        _filter = Gtk.FileFilter()
+        _filter.set_name("{} files".format(pattern))
+        _filter.add_pattern(pattern)
+        dialog.add_filter(_filter)
 
-    def ChooserDialog(self, widget, action=Gtk.FileChooserAction.OPEN, filename=None, filter=None):
+    def ChooserDialog(self, widget, action=Gtk.FileChooserAction.OPEN, filename=None, pattern=None):
         dialog = Gtk.FileChooserDialog(
             title="Please choose a file", parent=None, action=action
         )
@@ -328,7 +366,9 @@ class Mainform():
             if filename:
                 dialog.set_filename(filename)
 
-            self.add_filters(dialog)
+            if pattern is not None:
+                for p in pattern.split("|"):
+                    self.add_filters(dialog, p)
 
             response = dialog.run()
             if response == Gtk.ResponseType.OK:
@@ -337,7 +377,7 @@ class Mainform():
             dialog.destroy()
 
     def on_exe_path_btn_clicked(self, widget):
-        fn = self.ChooserDialog(widget, filename=self.exe_path_edit.get_text())
+        fn = self.ChooserDialog(widget, filename=self.exe_path_edit.get_text(), pattern="*")
         if fn:
             self.exe_path_edit.set_text(fn)
 
