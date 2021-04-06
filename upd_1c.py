@@ -40,11 +40,45 @@ class MyThread(threading.Thread):
             log.info(e)
 
 
+class TestCheck():
+    def __init__(self, params=[4]):
+        self.builder = Gtk.Builder()
+        self.builder.add_from_file("forms/testcheck.glade")
+        self.builder.connect_signals(self)
+        self.testcheck_dlg = self.builder.get_object('testcheckform')
+        self.chk_params = params
+        for c in range(0, 5):
+            try:
+                chk = self.builder.get_object('chk' + c)
+                chk.check = c in self.chk_params
+            except Exception:
+                break
+        self.testcheck_dlg.show_all()
+
+    def on_testcheck_cancel(self, widget):
+        self.testcheck_dlg.destroy()
+
+    def on_testcheck_ok(self, widget):
+        for c in range(0, 5):
+            try:
+                chk = self.builder.get_object('chk' + c)
+                if chk.check:
+                    self.chk_params.append(c)
+            except Exception:
+                break
+        self.testcheck_dlg.destroy()
+
+    def show(self):
+        self.testcheck_dlg.show()
+
+    def get_param(self):
+        return ";".join(map(str, self.chk_params))
+
+
 class Mainform():
     def __init__(self):
         builder = Gtk.Builder()
         builder.add_from_file("forms/mainform.glade")
-
         builder.connect_signals(self)
         self.wmain = builder.get_object("mainform")
         self.UserE = builder.get_object('UserE')
@@ -58,6 +92,7 @@ class Mainform():
         self.macros_list = builder.get_object('macros_list')
         self.macros_liststore = builder.get_object('macros_liststore')
         self.logs_textbuffer = builder.get_object('logs_textbuffer')
+        self.testcheck_dlg = builder.get_object('testcheckform')
         self.create()
         self.logfile = self.ini[config.SectionMain].get(
             config.KeyLogFile, Path(os.path.dirname(__file__)) / 'logs' / 'upd_1c.log')
@@ -65,6 +100,7 @@ class Mainform():
         log = logger.get_logger(__name__, self.logfile, level=logging.DEBUG, callback=self.logs_callback)
         log.info('Started')
         self.main_thread = None
+        self.loop()
 
     def logs_callback(self, msg):
         self.logs_textbuffer.insert(self.logs_textbuffer.get_end_iter(), msg)
@@ -212,6 +248,18 @@ class Mainform():
                 # AddLog(LogFile, Caption);
                 # end;
                 pass
+            elif action == BaseActions['ba_check']:
+                title = 'Тестирование и  исправление'
+                log.info(title)
+                if param is not None:
+                    chk_params = []
+                    params_map = ['-ReIndex', '-LogIntegrity', '-LogAndRefsIntegrity',
+                                  '-RecalcTotals', '-IBCompression', '-Rebuild']
+                    for p in param.split(';'):
+                        chk_params.append(params_map[int(p)])
+                    self.run_1c('DESIGNER', ['/IBCheckAndRepair'] + chk_params)
+                    log.info('{} завершено!'.format(title))
+
             elif action == BaseActions['ba_cache']:
                 # ba_cache:
                 # begin
@@ -339,6 +387,16 @@ class Mainform():
         else:
             log.info('"{n}" уже запущено. Дождитесь завершения!'.format(n=widget.get_label()))
 
+    def on_testcheck(self, widget):
+        if self.main_thread is None or not self.main_thread.is_alive():
+            testcheck_dlg = TestCheck()
+            testcheck_dlg.show()
+            chk_params = testcheck_dlg.get_param()
+            self.main_thread = MyThread(target=self.macrosAction, name=__name__, args=(BaseActions['ba_check'], chk_params))
+            self.main_thread.start()
+        else:
+            log.info('"{n}" уже запущено. Дождитесь завершения!'.format(n=widget.get_label()))
+
     def on_IBRestoreIntegrity(self, widget):
         if self.main_thread is None or not self.main_thread.is_alive():
             self.main_thread = MyThread(target=self.macrosAction, name=__name__, args=(BaseActions['ba_integrity'],))
@@ -392,5 +450,5 @@ class Mainform():
             self.bak_path_edit.set_text(fn)
 
 
-Mainform().loop()
+Mainform()
 Gtk.main()
