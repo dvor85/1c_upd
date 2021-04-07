@@ -15,9 +15,8 @@ import subprocess
 import datetime
 import gi
 import re
-from pickle import NONE
 gi.require_version("Gtk", "3.0")
-from gi.repository import Gtk  # @IgnorePep8
+from gi.repository import Gtk, Gdk  # @IgnorePep8
 
 global log
 
@@ -44,34 +43,32 @@ class TestCheck():
     def __init__(self, params=[4]):
         self.builder = Gtk.Builder()
         self.builder.add_from_file("forms/testcheck.glade")
-        self.builder.connect_signals(self)
         self.testcheck_dlg = self.builder.get_object('testcheckform')
+        self.testcheck_dlg.add_buttons(
+            Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL, Gtk.STOCK_OK, Gtk.ResponseType.OK
+        )
         self.chk_params = params
         for c in range(0, 5):
             try:
                 chk = self.builder.get_object('chk' + c)
-                chk.check = c in self.chk_params
+                chk.set_active(c in self.chk_params)
             except Exception:
                 break
-        self.testcheck_dlg.show_all()
 
-    def on_testcheck_cancel(self, widget):
-        self.testcheck_dlg.destroy()
-
-    def on_testcheck_ok(self, widget):
-        for c in range(0, 5):
-            try:
-                chk = self.builder.get_object('chk' + c)
-                if chk.check:
-                    self.chk_params.append(c)
-            except Exception:
-                break
-        self.testcheck_dlg.destroy()
-
-    def show(self):
-        self.testcheck_dlg.show()
+    def run(self):
+        try:
+            return self.testcheck_dlg.run()
+        finally:
+            self.testcheck_dlg.destroy()
 
     def get_param(self):
+        for c in range(0, 5):
+            try:
+                chk = self.builder.get_object('chk{}'.format(c))
+                if chk.get_active():
+                    self.chk_params.append(c)
+            except Exception as e:
+                break
         return ";".join(map(str, self.chk_params))
 
 
@@ -93,19 +90,36 @@ class Mainform():
         self.macros_liststore = builder.get_object('macros_liststore')
         self.logs_textbuffer = builder.get_object('logs_textbuffer')
         self.testcheck_dlg = builder.get_object('testcheckform')
-        self.create()
-        self.logfile = self.ini[config.SectionMain].get(
-            config.KeyLogFile, Path(os.path.dirname(__file__)) / 'logs' / 'upd_1c.log')
-        global log
-        log = logger.get_logger(__name__, self.logfile, level=logging.DEBUG, callback=self.logs_callback)
+        self.commands_menu = builder.get_object('commands_menu')
+
+        self.configure()
+
+        # self.populate_liststore_menu()
         log.info('Started')
         self.main_thread = None
-        self.loop()
+        self.wmain.show_all()
+        Gtk.main()
+
+    def populate_liststore_menu(self):
+        log.info('on_macros_list_popup_menu')
+
+    def on_macros_list_popup_menu(self, widget, event):
+        if event.button == 3:
+            if not self.commands_menu.get_attach_widget() == widget:
+                self.commands_menu.detach()
+                self.commands_menu.attach_to_widget(widget)
+            self.commands_menu.popup_at_pointer(None)
+
+    def on_commands_menu_select(self, widget):
+        if not self.commands_menu.get_attach_widget() == widget:
+            self.commands_menu.detach()
+            self.commands_menu.attach_to_widget(widget)
+            self.commands_menu.popup_at_widget(widget, Gdk.Gravity(1), Gdk.Gravity(1), None)
 
     def logs_callback(self, msg):
         self.logs_textbuffer.insert(self.logs_textbuffer.get_end_iter(), msg)
 
-    def create(self):
+    def configure(self):
         self.wmain.set_title('Upd_1c')
         ini_file = Path(os.path.dirname(__file__)) / 'upd_1c.ini'
         self.status_bar.push(1, str(ini_file))
@@ -118,14 +132,16 @@ class Mainform():
         self.bak_count_edit.set_value(int(self.ini[config.SectionBase].get(config.KeyBackupCount, '3')))
         self.page_size_edit.set_value(int(self.ini[config.SectionBase].get(config.KeyPageSize, '8')))
 
+        self.logfile = self.ini[config.SectionMain].get(
+            config.KeyLogFile, Path(os.path.dirname(__file__)) / 'logs' / 'upd_1c.log')
+        global log
+        log = logger.get_logger(__name__, self.logfile, level=logging.DEBUG, callback=self.logs_callback)
+
         for i in self.ini[config.SectionMacro].items():
             self.macros_liststore.append(list(i))
         renderer = Gtk.CellRendererText()
         column = Gtk.TreeViewColumn("Title", renderer, text=1)
         self.macros_list.append_column(column)
-
-    def loop(self):
-        self.wmain.show_all()
 
     def onDestroy(self, *args):
         Gtk.main_quit()
@@ -181,13 +197,12 @@ class Mainform():
                 log.info('{} завершена!'.format(title))
             elif action == BaseActions['ba_dumpib']:
                 title = 'Выгрузка информационной базы'
-                log.info(title)
-                log.debug('файл: {}'.format(param))
-                self.run_1c('DESIGNER', ['/DumpIB', param])
-
+                log.info('{} в файл "{}"'.format(title, param))
+                if param is not None:
+                    self.run_1c('DESIGNER', ['/DumpIB', param])
+                    self.delete_old(self.bak_path_edit.get_text(), "*.dt", int(self.bak_count_edit.get_text()))
                 log.info('{} завершена!'.format(title))
 
-                # DeleteOld(IncludeTrailingBackslash(ExpandFileName(LabeledEdit1.Text)), '*.dt', SpinEdit1.Value);
             elif action == BaseActions['ba_restoreib']:
                 title = 'Загрузка информационной базы'
                 log.info('{} "{}"'.format(title, param))
@@ -199,8 +214,9 @@ class Mainform():
                 log.info('{} "{}"'.format(title, param))
                 if param is not None:
                     self.run_1c('DESIGNER', ['/DumpCFG', param])
+                    self.delete_old(self.bak_path_edit.get_text(), "*.cf", int(self.bak_count_edit.get_text()))
                 log.info('{} завершена!'.format(title))
-                # DeleteOld(IncludeTrailingBackslash(ExpandFileName(LabeledEdit1.Text)), '*.cf', SpinEdit1.Value);
+
             elif action == BaseActions['ba_loadcfg']:
                 title = 'Загрузка конфигурации'
                 if param is not None:
@@ -211,16 +227,8 @@ class Mainform():
                         ext_params.append(param.replace(".cfe", ""))
                     log.info('{} "{}"'.format(title, param))
                     self.run_1c('DESIGNER', ['/LoadCfg', param] + ext_params)
-                    log.info('{} завершена!'.format(title))
-            elif action == BaseActions['ba_check']:
-                # Caption := 'Тестирование и исправление базы';
-                # AddLog(LogFile, Caption);
-                # if not CheckAndRepair(param) then
-                    # raise Exception.Create(Caption + ' завершено с ошибкой!');
-                # Caption := Caption + ' успешно завершено!';
-                # AddLog(LogFile, Caption);
-                # end;
-                pass
+                log.info('{} завершена!'.format(title))
+
             elif action == BaseActions['ba_enterprise']:
 
                 title = 'Запуск в режиме ENTERPRISE'
@@ -239,15 +247,11 @@ class Mainform():
                 self.run_1c('DESIGNER', ['/IBRestoreIntegrity'])
                 log.info('{} завершено!'.format(title))
             elif action == BaseActions['ba_physical']:
-                # begin
-                # Caption := 'Восстановление физической целостности';
-                # AddLog(LogFile, Caption);
-                # if not CheckPhysicalIntegrity() then
-                    # raise Exception.Create(Caption + ' завершено с ошибкой!');
-                # Caption := Caption + ' успешно завершено!';
-                # AddLog(LogFile, Caption);
-                # end;
-                pass
+                title = 'Восстановление физической целостности'
+                log.info(title)
+                chdbfl = Path(self.exe_path_edit.get_text()).parent / 'chdbfl'
+                subprocess.check_call([str(chdbfl)])
+                log.info('{} завершено!'.format(title))
             elif action == BaseActions['ba_check']:
                 title = 'Тестирование и  исправление'
                 log.info(title)
@@ -258,7 +262,7 @@ class Mainform():
                     for p in param.split(';'):
                         chk_params.append(params_map[int(p)])
                     self.run_1c('DESIGNER', ['/IBCheckAndRepair'] + chk_params)
-                    log.info('{} завершено!'.format(title))
+                log.info('{} завершено!'.format(title))
 
             elif action == BaseActions['ba_cache']:
                 # ba_cache:
@@ -272,32 +276,31 @@ class Mainform():
                 # end;
                 pass
             elif action == BaseActions['ba_convert']:
-                # begin
-                # Caption := 'Конвертация файловой ИБ в новый формат';
-                # AddLog(LogFile, Caption);
-                # if not ConvertFileBase() then
-                    # raise Exception.Create(Caption + ' завершена с ошибкой!');
-                # Caption := Caption + ' успешно завершена!';
-                # AddLog(LogFile, Caption);
-                # end;
-                pass
+                title = 'Конвертация файловой ИБ в новый формат'
+                log.info('{} с размером страницы {}k'.format(title, param))
+                if param is not None:
+                    proc = [Path(self.exe_path_edit.get_text()).parent / 'cnvdbfl']
+                    proc.append('--convert')
+                    proc.append('--format=8.3.8')
+                    proc.append('--page={}k'.format(param))
+                    proc.append(str(Path(self.base_path_edit.get_text()) / '1Cv8.1CD'))
+                    log.info(subprocess.check_output(proc).decode())
+                log.info('{} завершено!'.format(title))
             elif action == BaseActions['ba_journal']:
-                # ba_journal:
-                # begin
-                # Caption := 'Сокращение журнала регистрации';
-                # if not param.IsEmpty then
-                # begin
-                    # AddLog(LogFile, Format('%s "%s"', [Caption, param]));
-                    # if not ReduceEventLogSize(param) then
-                    # raise Exception.Create(Caption + ' завершено с ошибкой!');
-                    # Caption := Caption + ' успешно завершено!';
-                    # AddLog(LogFile, Caption);
-                    # DeleteOld(IncludeTrailingBackslash(ExpandFileName(LabeledEdit1.Text)), '*.lgd', SpinEdit1.Value);
-                # end;
-                # end;
-                pass
+                title = 'Сокращение журнала регистрации'
+                self.delete_old(self.bak_path_edit.get_text(), "*.lgd", int(self.bak_count_edit.get_text()))
+
         except Exception as e:
             log.info('"{}" завершена с ошибкой!'.format(title))
+            log.debug(e)
+
+    def delete_old(self, folder, pattern, need_count):
+        files = sorted(Path(folder).glob(pattern), key=lambda f: f.stat().st_ctime, reverse=True)
+        try:
+            for f in files[need_count:]:
+                log.info('Удаление устаревшего файла "{}"'.format(str(f)))
+                f.unlink()
+        except Exception as e:
             log.debug(e)
 
     def run_1c(self, mode, params=None):
@@ -388,18 +391,35 @@ class Mainform():
             log.info('"{n}" уже запущено. Дождитесь завершения!'.format(n=widget.get_label()))
 
     def on_testcheck(self, widget):
+        self.delete_old(Path().home(), "*", 0)
         if self.main_thread is None or not self.main_thread.is_alive():
             testcheck_dlg = TestCheck()
-            testcheck_dlg.show()
-            chk_params = testcheck_dlg.get_param()
-            self.main_thread = MyThread(target=self.macrosAction, name=__name__, args=(BaseActions['ba_check'], chk_params))
-            self.main_thread.start()
+            res = testcheck_dlg.run()
+            if res == Gtk.ResponseType.OK:
+                chk_params = testcheck_dlg.get_param()
+                self.main_thread = MyThread(target=self.macrosAction, name=__name__, args=(BaseActions['ba_check'], chk_params))
+                self.main_thread.start()
         else:
             log.info('"{n}" уже запущено. Дождитесь завершения!'.format(n=widget.get_label()))
 
     def on_IBRestoreIntegrity(self, widget):
         if self.main_thread is None or not self.main_thread.is_alive():
             self.main_thread = MyThread(target=self.macrosAction, name=__name__, args=(BaseActions['ba_integrity'],))
+            self.main_thread.start()
+        else:
+            log.info('"{n}" уже запущено. Дождитесь завершения!'.format(n=widget.get_label()))
+
+    def on_physical_restore(self, widget):
+        if self.main_thread is None or not self.main_thread.is_alive():
+            self.main_thread = MyThread(target=self.macrosAction, name=__name__, args=(BaseActions['ba_physical'],))
+            self.main_thread.start()
+        else:
+            log.info('"{n}" уже запущено. Дождитесь завершения!'.format(n=widget.get_label()))
+
+    def on_convert_fib(self, widget):
+        if self.main_thread is None or not self.main_thread.is_alive():
+            self.main_thread = MyThread(target=self.macrosAction, name=__name__, args=(
+                BaseActions['ba_convert'], self.page_size_edit.get_text()))
             self.main_thread.start()
         else:
             log.info('"{n}" уже запущено. Дождитесь завершения!'.format(n=widget.get_label()))
@@ -450,5 +470,5 @@ class Mainform():
             self.bak_path_edit.set_text(fn)
 
 
-Mainform()
-Gtk.main()
+if __name__ == "__main__":
+    Mainform()
