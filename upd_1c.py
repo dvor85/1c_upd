@@ -91,30 +91,52 @@ class Mainform():
         self.logs_textbuffer = builder.get_object('logs_textbuffer')
         self.testcheck_dlg = builder.get_object('testcheckform')
         self.commands_menu = builder.get_object('commands_menu')
+        self.populate_liststore_menu()
 
         self.configure()
 
-        # self.populate_liststore_menu()
         log.info('Started')
         self.main_thread = None
         self.wmain.show_all()
         Gtk.main()
 
     def populate_liststore_menu(self):
-        log.info('on_macros_list_popup_menu')
+        self.macros_menu = Gtk.Menu()
+        menu_add = Gtk.MenuItem(label="Добавить")
+        menu_add.set_submenu(self.commands_menu)
+        self.macros_menu.append(menu_add)
+        menu_del = Gtk.MenuItem(label="Удалить")
+        menu_del.connect("activate", self.on_menu_del_click)
+        self.macros_menu.append(menu_del)
+        menu_del_all = Gtk.MenuItem(label="Удалить все")
+        menu_del_all.connect("activate", self.on_menu_del_all_click)
+        self.macros_menu.append(menu_del_all)
+        # self.macros_menu.attach_to_widget(self.macros_list)
+        self.macros_menu.show_all()
+
+    def on_menu_del_click(self, widget):
+        sel = self.macros_list.get_selection().get_selected()
+        if sel[1] is not None:
+            self.macros_liststore.remove(sel[1])
+
+    def on_menu_del_all_click(self, widget):
+        self.macros_liststore.clear()
 
     def on_macros_list_popup_menu(self, widget, event):
         if event.button == 3:
-            if not self.commands_menu.get_attach_widget() == widget:
-                self.commands_menu.detach()
-                self.commands_menu.attach_to_widget(widget)
-            self.commands_menu.popup_at_pointer(None)
+            # if not self.commands_menu.get_attach_widget() == widget:
+                # self.commands_menu.detach()
+                # self.commands_menu.attach_to_widget(widget)
+            # self.macros_menu.get_children()[0].add_child(self.commands_menu, None, None)
+            self.commands_menu.set_name("macros")
+            self.macros_menu.popup_at_pointer(None)
 
     def on_commands_menu_select(self, widget):
-        if not self.commands_menu.get_attach_widget() == widget:
-            self.commands_menu.detach()
-            self.commands_menu.attach_to_widget(widget)
-            self.commands_menu.popup_at_widget(widget, Gdk.Gravity(1), Gdk.Gravity(1), None)
+        self.commands_menu.set_name("menu")
+        # if not self.commands_menu.get_attach_widget() == widget:
+        # self.commands_menu.detach()
+        # self.commands_menu.attach_to_widget(widget)
+        # self.commands_menu.popup_at_widget(widget, Gdk.Gravity(1), Gdk.Gravity(1), None)
 
     def logs_callback(self, msg):
         self.logs_textbuffer.insert(self.logs_textbuffer.get_end_iter(), msg)
@@ -137,29 +159,45 @@ class Mainform():
         global log
         log = logger.get_logger(__name__, self.logfile, level=logging.DEBUG, callback=self.logs_callback)
 
-        for i in self.ini[config.SectionMacro].items():
-            self.macros_liststore.append(list(i))
+        for key, val in self.ini[config.SectionMacro].items():
+            _key = key.split("_")[1]
+            self.macros_liststore.append([_key, val])
         renderer = Gtk.CellRendererText()
-        column = Gtk.TreeViewColumn("Title", renderer, text=1)
+        column = Gtk.TreeViewColumn("commands", renderer, text=1)
         self.macros_list.append_column(column)
+        self.ini[config.SectionMacro].clear()
+
+    def on_save_config(self, widget):
+        self.ini.set(config.SectionMain, config.KeyExecutable, self.exe_path_edit.get_text())
+        self.ini.set(config.SectionBase, config.KeyUser, self.UserE.get_text())
+        self.ini.set(config.SectionBase, config.KeyPass, base64.b64encode(self.PassE.get_text().encode('UTF-8')).decode('UTF-8'))
+        self.ini.set(config.SectionBase, config.KeyBakcupPath, self.bak_path_edit.get_text())
+        self.ini.set(config.SectionBase, config.KeyPath, self.base_path_edit.get_text())
+        self.ini.set(config.SectionBase, config.KeyBackupCount, self.bak_count_edit.get_text())
+        self.ini.set(config.SectionBase, config.KeyPageSize, self.page_size_edit.get_text())
+
+        for i, cmd in enumerate(self.macros_liststore):
+            key = "{}_{}".format(i, cmd[0])
+            self.ini.set(config.SectionMacro, key, cmd[1])
+        self.ini.write()
+        log.info("Настройки сохранены")
 
     def onDestroy(self, *args):
         Gtk.main_quit()
 
     def macrosAction(self, action, param=None, *args, **kwargs):
-
         try:
             if action == BaseActions['ba_macro']:
-                title = 'Макрос запущен'
+                title = 'Макрос'
+                log.info("{} запущен".format(title))
                 for (key, val) in self.macros_liststore:
-                    # key = row[0]
-                    # val = row[1]
-                    act = key.split('_')[1]
+                    _action = int(key)
+                    _param = None
                     v_p = re.split('\(|\)', val)
                     if len(v_p) > 1:
-                        par = v_p[1]
-                    log.info('{} "{}"'.format(v_p[0], par))
-                    # self.macrosAction(act, par)
+                        _param = v_p[1]
+                    self.macrosAction(_action, _param)
+                log.info("{} завершен".format(title))
 
             elif action == BaseActions['ba_update']:
                 if param is not None:
@@ -167,27 +205,6 @@ class Mainform():
                     log.info('{} "{}"'.format(title, param))
                     self.run_1c('DESIGNER', ['/UpdateCfg', param])
                     log.info('{} завершено!'.format(title))
-                    # for row in self.macros_liststore:
-                    # for k, v in row:
-                    # # act = k.split('_')[1]
-                    # param = re.split('(|)', v)[1]
-                    # log.info('{} "{}"'.format(title, param))
-              # case baseAction of
-                # ba_update:
-                # begin
-                  # for i := 0 to ListBox1.Count - 1 do
-                  # begin
-                    # ListBox1.ClearSelection;
-                    # ListBox1.Selected[i] := True;
-                    # Caption := 'Установка обновления';
-                    # AddLog(LogFile, Format('%s: "%s"', [Caption, ListBox1.Items[i]]));
-                    # if not updateBase(ListBox1.Items[i], (i = ListBox1.Count - 1)) then
-                    # raise Exception.Create('Ошибка обновления!');
-                    # Inc(currentTask);
-                  # end;
-                  # ListBox1.ClearSelection;
-                # end;
-                pass
 
             elif action == BaseActions['ba_updatecfg']:
                 title = 'Обновление конфигурации'
@@ -209,6 +226,7 @@ class Mainform():
                 if param is not None:
                     self.run_1c('DESIGNER', ['/RestoreIB', param])
                 log.info('{} завершена!'.format(title))
+
             elif action == BaseActions['ba_dumpcfg']:
                 title = 'Выгрузка конфигурации'
                 log.info('{} "{}"'.format(title, param))
@@ -230,11 +248,11 @@ class Mainform():
                 log.info('{} завершена!'.format(title))
 
             elif action == BaseActions['ba_enterprise']:
-
                 title = 'Запуск в режиме ENTERPRISE'
                 log.info(title)
                 self.run_1c('ENTERPRISE')
                 log.info('{} успешно завершен!'.format(title))
+
             elif action == BaseActions['ba_config']:
                 title = 'Запуск в режиме конфигуратора'
                 log.info(title)
@@ -246,12 +264,14 @@ class Mainform():
                 log.info(title)
                 self.run_1c('DESIGNER', ['/IBRestoreIntegrity'])
                 log.info('{} завершено!'.format(title))
+
             elif action == BaseActions['ba_physical']:
                 title = 'Восстановление физической целостности'
                 log.info(title)
                 chdbfl = Path(self.exe_path_edit.get_text()).parent / 'chdbfl'
                 subprocess.check_call([str(chdbfl)])
                 log.info('{} завершено!'.format(title))
+
             elif action == BaseActions['ba_check']:
                 title = 'Тестирование и  исправление'
                 log.info(title)
@@ -275,6 +295,7 @@ class Mainform():
                 # AddLog(LogFile, Caption);
                 # end;
                 pass
+
             elif action == BaseActions['ba_convert']:
                 title = 'Конвертация файловой ИБ в новый формат'
                 log.info('{} с размером страницы {}k'.format(title, param))
@@ -286,6 +307,7 @@ class Mainform():
                     proc.append(str(Path(self.base_path_edit.get_text()) / '1Cv8.1CD'))
                     log.info(subprocess.check_output(proc).decode())
                 log.info('{} завершено!'.format(title))
+
             elif action == BaseActions['ba_journal']:
                 title = 'Сокращение журнала регистрации'
                 self.delete_old(self.bak_path_edit.get_text(), "*.lgd", int(self.bak_count_edit.get_text()))
@@ -325,104 +347,169 @@ class Mainform():
             log.info('"{n}" уже запущено. Дождитесь завершения!'.format(n=widget.get_label()))
 
     def on_updateIB(self, widget):
-        if self.main_thread is None or not self.main_thread.is_alive():
-            fn = self.ChooserDialog(widget, filename=self.bak_path_edit.get_text(), pattern="*.cf|*.cfu")
-            if fn:
-                self.main_thread = MyThread(target=self.macrosAction, name=__name__, args=(BaseActions['ba_update'], fn))
+        action = BaseActions['ba_update']
+        fn = self.ChooserDialog(widget, filename=self.bak_path_edit.get_text(), pattern="*.cf|*.cfu")
+        if not fn:
+            return
+        if self.commands_menu.get_name() == "menu":
+            if self.main_thread is None or not self.main_thread.is_alive():
+                self.main_thread = MyThread(target=self.macrosAction, name=__name__, args=(action, fn))
                 self.main_thread.start()
+            else:
+                log.info('"{n}" уже запущено. Дождитесь завершения!'.format(n=widget.get_label()))
         else:
-            log.info('"{n}" уже запущено. Дождитесь завершения!'.format(n=widget.get_label()))
+            self.add_macros_command(widget, action, fn)
 
     def on_updateCFG(self, widget):
-        if self.main_thread is None or not self.main_thread.is_alive():
-            self.main_thread = MyThread(target=self.macrosAction, name=__name__, args=(BaseActions['ba_updatecfg'],))
-            self.main_thread.start()
+        action = BaseActions['ba_updatecfg']
+        if self.commands_menu.get_name() == "menu":
+            if self.main_thread is None or not self.main_thread.is_alive():
+                self.main_thread = MyThread(target=self.macrosAction, name=__name__, args=(action,))
+                self.main_thread.start()
+            else:
+                log.info('"{n}" уже запущено. Дождитесь завершения!'.format(n=widget.get_label()))
         else:
-            log.info('"{n}" уже запущено. Дождитесь завершения!'.format(n=widget.get_label()))
+            self.add_macros_command(widget, action)
 
     def on_runEnterprise(self, widget):
-        if self.main_thread is None or not self.main_thread.is_alive():
-            self.main_thread = MyThread(target=self.macrosAction, name=__name__, args=(BaseActions['ba_enterprise'],))
-            self.main_thread.start()
+        action = BaseActions['ba_enterprise']
+        if self.commands_menu.get_name() == "menu":
+            if self.main_thread is None or not self.main_thread.is_alive():
+                self.main_thread = MyThread(target=self.macrosAction, name=__name__, args=(action,))
+                self.main_thread.start()
+            else:
+                log.info('"{n}" уже запущено. Дождитесь завершения!'.format(n=widget.get_label()))
         else:
-            log.info('"{n}" уже запущено. Дождитесь завершения!'.format(n=widget.get_label()))
+            self.add_macros_command(widget, action)
 
     def on_runDesigner(self, widget):
-        if self.main_thread is None or not self.main_thread.is_alive():
-            self.main_thread = MyThread(target=self.macrosAction, name=__name__, args=(BaseActions['ba_config'],))
-            self.main_thread.start()
+        action = BaseActions['ba_config']
+        if self.commands_menu.get_name() == "menu":
+            if self.main_thread is None or not self.main_thread.is_alive():
+                self.main_thread = MyThread(target=self.macrosAction, name=__name__, args=(action,))
+                self.main_thread.start()
+            else:
+                log.info('"{n}" уже запущено. Дождитесь завершения!'.format(n=widget.get_label()))
         else:
-            log.info('"{n}" уже запущено. Дождитесь завершения!'.format(n=widget.get_label()))
+            self.add_macros_command(widget, action)
 
     def on_dumpIB(self, widget):
-        if self.main_thread is None or not self.main_thread.is_alive():
-            fn = Path(self.bak_path_edit.get_text()) / datetime.datetime.today().strftime('%d.%m.%Y_%H.%M.%S.dt')
-            Path(self.bak_path_edit.get_text()).mkdir(parents=True, exist_ok=True)
-            self.main_thread = MyThread(target=self.macrosAction, name=__name__, args=(BaseActions['ba_dumpib'], str(fn)))
-            self.main_thread.start()
+        action = BaseActions['ba_dumpib']
+        if self.commands_menu.get_name() == "menu":
+            if self.main_thread is None or not self.main_thread.is_alive():
+                fn = Path(self.bak_path_edit.get_text()) / datetime.datetime.today().strftime('%d.%m.%Y_%H.%M.%S.dt')
+                Path(self.bak_path_edit.get_text()).mkdir(parents=True, exist_ok=True)
+                self.main_thread = MyThread(target=self.macrosAction, name=__name__, args=(action, str(fn)))
+                self.main_thread.start()
+            else:
+                log.info('"{n}" уже запущено. Дождитесь завершения!'.format(n=widget.get_label()))
         else:
-            log.info('"{n}" уже запущено. Дождитесь завершения!'.format(n=widget.get_label()))
+            self.add_macros_command(widget, action)
 
     def on_restoreIB(self, widget):
-        if self.main_thread is None or not self.main_thread.is_alive():
-            fn = self.ChooserDialog(widget, filename=self.bak_path_edit.get_text(), pattern="*.dt")
-            if fn:
-                self.main_thread = MyThread(target=self.macrosAction, name=__name__, args=(BaseActions['ba_restoreib'], fn))
+        action = BaseActions['ba_restoreib']
+        fn = self.ChooserDialog(widget, filename=self.bak_path_edit.get_text(), pattern="*.dt")
+        if not fn:
+            return
+        if self.commands_menu.get_name() == "menu":
+            if self.main_thread is None or not self.main_thread.is_alive():
+                self.main_thread = MyThread(target=self.macrosAction, name=__name__, args=(action, fn))
                 self.main_thread.start()
+            else:
+                log.info('"{n}" уже запущено. Дождитесь завершения!'.format(n=widget.get_label()))
         else:
-            log.info('"{n}" уже запущено. Дождитесь завершения!'.format(n=widget.get_label()))
+            self.add_macros_command(widget, action, fn)
 
     def on_dumpCFG(self, widget):
-        if self.main_thread is None or not self.main_thread.is_alive():
-            fn = Path(self.bak_path_edit.get_text()) / datetime.datetime.today().strftime('%d.%m.%Y_%H.%M.%S.cf')
-            Path(self.bak_path_edit.get_text()).mkdir(parents=True, exist_ok=True)
-            self.main_thread = MyThread(target=self.macrosAction, name=__name__, args=(BaseActions['ba_dumbcfg'], str(fn)))
-            self.main_thread.start()
+        action = BaseActions['ba_dumpcfg']
+        if self.commands_menu.get_name() == "menu":
+            if self.main_thread is None or not self.main_thread.is_alive():
+                fn = Path(self.bak_path_edit.get_text()) / datetime.datetime.today().strftime('%d.%m.%Y_%H.%M.%S.cf')
+                Path(self.bak_path_edit.get_text()).mkdir(parents=True, exist_ok=True)
+                self.main_thread = MyThread(target=self.macrosAction, name=__name__, args=(action, str(fn)))
+                self.main_thread.start()
+            else:
+                log.info('"{n}" уже запущено. Дождитесь завершения!'.format(n=widget.get_label()))
         else:
-            log.info('"{n}" уже запущено. Дождитесь завершения!'.format(n=widget.get_label()))
+            self.add_macros_command(widget, action)
 
     def on_loadCFG(self, widget):
-        if self.main_thread is None or not self.main_thread.is_alive():
-            fn = self.ChooserDialog(widget, filename=self.bak_path_edit.get_text(), pattern="*.cf|*.cfe")
-            if fn:
-                self.main_thread = MyThread(target=self.macrosAction, name=__name__, args=(BaseActions['ba_restoreib'], fn))
+        action = BaseActions['ba_loadcfg']
+        fn = self.ChooserDialog(widget, filename=self.bak_path_edit.get_text(), pattern="*.cf|*.cfe")
+        if not fn:
+            return
+        if self.commands_menu.get_name() == "menu":
+            if self.main_thread is None or not self.main_thread.is_alive():
+                self.main_thread = MyThread(target=self.macrosAction, name=__name__, args=(action, fn))
                 self.main_thread.start()
+            else:
+                log.info('"{n}" уже запущено. Дождитесь завершения!'.format(n=widget.get_label()))
         else:
-            log.info('"{n}" уже запущено. Дождитесь завершения!'.format(n=widget.get_label()))
+            self.add_macros_command(widget, action, fn)
 
     def on_testcheck(self, widget):
-        self.delete_old(Path().home(), "*", 0)
-        if self.main_thread is None or not self.main_thread.is_alive():
-            testcheck_dlg = TestCheck()
-            res = testcheck_dlg.run()
-            if res == Gtk.ResponseType.OK:
-                chk_params = testcheck_dlg.get_param()
-                self.main_thread = MyThread(target=self.macrosAction, name=__name__, args=(BaseActions['ba_check'], chk_params))
-                self.main_thread.start()
-        else:
-            log.info('"{n}" уже запущено. Дождитесь завершения!'.format(n=widget.get_label()))
+        action = BaseActions['ba_check']
+        testcheck_dlg = TestCheck()
+        res = testcheck_dlg.run()
+        if res == Gtk.ResponseType.OK:
+            chk_params = testcheck_dlg.get_param()
+            if self.commands_menu.get_name() == "menu":
+                if self.main_thread is None or not self.main_thread.is_alive():
+                    self.main_thread = MyThread(target=self.macrosAction, name=__name__, args=(action, chk_params))
+                    self.main_thread.start()
+                else:
+                    log.info('"{n}" уже запущено. Дождитесь завершения!'.format(n=widget.get_label()))
+            else:
+                self.add_macros_command(widget, action, chk_params)
 
     def on_IBRestoreIntegrity(self, widget):
-        if self.main_thread is None or not self.main_thread.is_alive():
-            self.main_thread = MyThread(target=self.macrosAction, name=__name__, args=(BaseActions['ba_integrity'],))
-            self.main_thread.start()
+        action = BaseActions['ba_integrity']
+        if self.commands_menu.get_name() == "menu":
+            if self.main_thread is None or not self.main_thread.is_alive():
+                self.main_thread = MyThread(target=self.macrosAction, name=__name__, args=(action,))
+                self.main_thread.start()
+            else:
+                log.info('"{n}" уже запущено. Дождитесь завершения!'.format(n=widget.get_label()))
         else:
-            log.info('"{n}" уже запущено. Дождитесь завершения!'.format(n=widget.get_label()))
+            self.add_macros_command(widget, action)
 
     def on_physical_restore(self, widget):
-        if self.main_thread is None or not self.main_thread.is_alive():
-            self.main_thread = MyThread(target=self.macrosAction, name=__name__, args=(BaseActions['ba_physical'],))
-            self.main_thread.start()
+        action = BaseActions['ba_physical']
+        if self.commands_menu.get_name() == "menu":
+            if self.main_thread is None or not self.main_thread.is_alive():
+                self.main_thread = MyThread(target=self.macrosAction, name=__name__, args=(action,))
+                self.main_thread.start()
+            else:
+                log.info('"{n}" уже запущено. Дождитесь завершения!'.format(n=widget.get_label()))
         else:
-            log.info('"{n}" уже запущено. Дождитесь завершения!'.format(n=widget.get_label()))
+            self.add_macros_command(widget, action)
 
     def on_convert_fib(self, widget):
-        if self.main_thread is None or not self.main_thread.is_alive():
-            self.main_thread = MyThread(target=self.macrosAction, name=__name__, args=(
-                BaseActions['ba_convert'], self.page_size_edit.get_text()))
-            self.main_thread.start()
+        action = BaseActions['ba_convert']
+        if self.commands_menu.get_name() == "menu":
+            if self.main_thread is None or not self.main_thread.is_alive():
+                self.main_thread = MyThread(target=self.macrosAction, name=__name__, args=(
+                    action, self.page_size_edit.get_text()))
+                self.main_thread.start()
+            else:
+                log.info('"{n}" уже запущено. Дождитесь завершения!'.format(n=widget.get_label()))
         else:
-            log.info('"{n}" уже запущено. Дождитесь завершения!'.format(n=widget.get_label()))
+            self.add_macros_command(widget, action, self.page_size_edit.get_text())
+
+    def add_macros_command(self, widget, action, param=None):
+        sel = self.macros_list.get_selection().get_selected()
+        if sel[1] is not None:
+            pos = int(self.macros_liststore.get_string_from_iter(sel[1]))
+            if param is not None:
+                self.macros_liststore.insert(pos, [str(action), "{cmd}({param})".format(cmd=widget.get_label(), param=param)])
+            else:
+                self.macros_liststore.insert(pos, [str(action), widget.get_label()])
+        else:
+            if param is not None:
+                self.macros_liststore.append([str(action),
+                                              "{cmd}({param})".format(cmd=widget.get_label(), param=param)])
+            else:
+                self.macros_liststore.append([str(action), widget.get_label()])
 
     def add_filters(self, dialog, pattern=None):
         _filter = Gtk.FileFilter()

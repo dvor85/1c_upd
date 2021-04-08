@@ -22,16 +22,12 @@ SectionUpdates = 'Updates'
 SectionMacro = 'Macro'
 
 
-class Config(UserDict):
+class Config(configparser.ConfigParser):
     def __init__(self, confile):
-        UserDict.__init__(self)
+        configparser.ConfigParser.__init__(self)
         self.confile = confile
-        self.read()
+        self.read(self.confile)
 
-    def read(self):
-        self.data = configparser.ConfigParser()
-        self.data.read(self.confile)
-
-    def write(self, config):
-        with open(self.confile) as cf:
-            self.data.write(cf)
+    def write(self):
+        with open(self.confile, "w") as fp:
+            configparser.ConfigParser.write(self, fp)
