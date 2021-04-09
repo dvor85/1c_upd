@@ -17,7 +17,6 @@ KeyBackupCount = 'BakcupCount'
 KeyUser = 'User'
 KeyPass = 'Password'
 KeyPageSize = 'PageSize'
-KeyLogFile = 'LogFile'
 SectionUpdates = 'Updates'
 SectionMacro = 'Macro'
 

@@ -15,8 +15,10 @@ import subprocess
 import datetime
 import gi
 import re
+import argparse
+import sys
 gi.require_version("Gtk", "3.0")
-from gi.repository import Gtk, Gdk  # @IgnorePep8
+from gi.repository import Gtk  # @IgnorePep8
 
 global log
 
@@ -24,6 +26,30 @@ BaseActions = dict(ba_update=0, ba_dumpib=1, ba_restoreib=2, ba_dumpcfg=3,
                    ba_loadcfg=4, ba_check=5, ba_enterprise=6, ba_config=7,
                    ba_cache=8, ba_journal=9, ba_integrity=10, ba_physical=11,
                    ba_macro=12, ba_convert=13, ba_updatecfg=14)
+
+
+class Options():
+    _instance = None
+    _lock = threading.Lock()
+
+    @staticmethod
+    def get_instance():
+        if Options._instance is None:
+            with Options._lock:
+                Options._instance = Options()
+        return Options._instance
+
+    def __init__(self):
+        parser = argparse.ArgumentParser(prog=Path(__file__).name, add_help=True)
+        parser.add_argument('ini_file', nargs="?", default=str(Path(os.path.dirname(__file__)) / 'upd_1c.ini'),
+                            help='Path to ini file')
+        parser.add_argument('--not-interactive', '-n', action='store_true', default=False,
+                            help='Run in non interactive mode')
+
+        self.options = parser.parse_args()
+
+    def __call__(self):
+        return self.options
 
 
 class MyThread(threading.Thread):
@@ -47,11 +73,10 @@ class TestCheck():
         self.testcheck_dlg.add_buttons(
             Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL, Gtk.STOCK_OK, Gtk.ResponseType.OK
         )
-        self.chk_params = params
         for c in range(0, 5):
             try:
                 chk = self.builder.get_object('chk' + c)
-                chk.set_active(c in self.chk_params)
+                chk.set_active(c in params)
             except Exception:
                 break
 
@@ -62,18 +87,23 @@ class TestCheck():
             self.testcheck_dlg.destroy()
 
     def get_param(self):
+        chk_params = []
         for c in range(0, 5):
             try:
                 chk = self.builder.get_object('chk{}'.format(c))
                 if chk.get_active():
-                    self.chk_params.append(c)
+                    chk_params.append(c)
             except Exception as e:
                 break
-        return ";".join(map(str, self.chk_params))
+        return ";".join(map(str, chk_params))
 
 
 class Mainform():
     def __init__(self):
+        global log
+        self.options = Options.get_instance()()
+        self.logfile = Path(self.options.ini_file).parent / 'logs' / Path(self.options.ini_file).with_suffix(".log").name
+        log = logger.get_logger(__name__, self.logfile, level=logging.DEBUG, callback=self.logs_callback)
         builder = Gtk.Builder()
         builder.add_from_file("forms/mainform.glade")
         builder.connect_signals(self)
@@ -100,6 +130,28 @@ class Mainform():
         self.wmain.show_all()
         Gtk.main()
 
+    def configure(self):
+        self.wmain.set_title('Upd_1c')
+        self.status_bar.push(1, str(self.options.ini_file))
+        self.ini = config.Config(self.options.ini_file)
+        if self.ini.has_section(config.SectionBase):
+            self.UserE.set_text(self.ini[config.SectionBase].get(config.KeyUser, ''))
+            self.bak_path_edit.set_text(self.ini[config.SectionBase].get(config.KeyBakcupPath, ''))
+            self.base_path_edit.set_text(self.ini[config.SectionBase].get(config.KeyPath, ''))
+            self.PassE.set_text(base64.b64decode(self.ini[config.SectionBase].get(config.KeyPass, '')).decode('UTF-8'))
+            self.bak_count_edit.set_value(int(self.ini[config.SectionBase].get(config.KeyBackupCount, '3')))
+            self.page_size_edit.set_value(int(self.ini[config.SectionBase].get(config.KeyPageSize, '8')))
+        if self.ini.has_section(config.SectionMain):
+            self.exe_path_edit.set_text(self.ini[config.SectionMain].get(config.KeyExecutable, ''))
+
+        if self.ini.has_section(config.SectionMacro):
+            for key, val in self.ini.get[config.SectionMacro].items():
+                _key = key.split("_")[1]
+                self.macros_liststore.append([_key, val])
+            self.ini[config.SectionMacro].clear()
+        column = Gtk.TreeViewColumn("commands", Gtk.CellRendererText(), text=1)
+        self.macros_list.append_column(column)
+
     def populate_liststore_menu(self):
         self.macros_menu = Gtk.Menu()
         menu_add = Gtk.MenuItem(label="Добавить")
@@ -114,6 +166,21 @@ class Mainform():
         # self.macros_menu.attach_to_widget(self.macros_list)
         self.macros_menu.show_all()
 
+    def on_save_config(self, widget):
+        self.ini.set(config.SectionMain, config.KeyExecutable, self.exe_path_edit.get_text())
+        self.ini.set(config.SectionBase, config.KeyUser, self.UserE.get_text())
+        self.ini.set(config.SectionBase, config.KeyPass, base64.b64encode(self.PassE.get_text().encode('UTF-8')).decode('UTF-8'))
+        self.ini.set(config.SectionBase, config.KeyBakcupPath, self.bak_path_edit.get_text())
+        self.ini.set(config.SectionBase, config.KeyPath, self.base_path_edit.get_text())
+        self.ini.set(config.SectionBase, config.KeyBackupCount, self.bak_count_edit.get_text())
+        self.ini.set(config.SectionBase, config.KeyPageSize, self.page_size_edit.get_text())
+
+        for i, cmd in enumerate(self.macros_liststore):
+            key = "{}_{}".format(i, cmd[0])
+            self.ini.set(config.SectionMacro, key, cmd[1])
+        self.ini.write()
+        log.info("Настройки сохранены")
+
     def on_menu_del_click(self, widget):
         sel = self.macros_list.get_selection().get_selected()
         if sel[1] is not None:
@@ -122,8 +189,8 @@ class Mainform():
     def on_menu_del_all_click(self, widget):
         self.macros_liststore.clear()
 
-    def on_macros_list_popup_menu(self, widget, event):
-        if event.button == 3:
+    def on_macros_list_popup_menu(self, widget, event=None):
+        if (event is not None and event.button == 3) or event is None:
             # if not self.commands_menu.get_attach_widget() == widget:
                 # self.commands_menu.detach()
                 # self.commands_menu.attach_to_widget(widget)
@@ -141,49 +208,19 @@ class Mainform():
     def logs_callback(self, msg):
         self.logs_textbuffer.insert(self.logs_textbuffer.get_end_iter(), msg)
 
-    def configure(self):
-        self.wmain.set_title('Upd_1c')
-        ini_file = Path(os.path.dirname(__file__)) / 'upd_1c.ini'
-        self.status_bar.push(1, str(ini_file))
-        self.ini = config.Config(ini_file)
-        self.UserE.set_text(self.ini[config.SectionBase].get(config.KeyUser, ''))
-        self.bak_path_edit.set_text(self.ini[config.SectionBase].get(config.KeyBakcupPath, ''))
-        self.exe_path_edit.set_text(self.ini[config.SectionMain].get(config.KeyExecutable, ''))
-        self.base_path_edit.set_text(self.ini[config.SectionBase].get(config.KeyPath, ''))
-        self.PassE.set_text(base64.b64decode(self.ini[config.SectionBase].get(config.KeyPass, '')).decode('UTF-8'))
-        self.bak_count_edit.set_value(int(self.ini[config.SectionBase].get(config.KeyBackupCount, '3')))
-        self.page_size_edit.set_value(int(self.ini[config.SectionBase].get(config.KeyPageSize, '8')))
-
-        self.logfile = self.ini[config.SectionMain].get(
-            config.KeyLogFile, Path(os.path.dirname(__file__)) / 'logs' / 'upd_1c.log')
-        global log
-        log = logger.get_logger(__name__, self.logfile, level=logging.DEBUG, callback=self.logs_callback)
-
-        for key, val in self.ini[config.SectionMacro].items():
-            _key = key.split("_")[1]
-            self.macros_liststore.append([_key, val])
-        renderer = Gtk.CellRendererText()
-        column = Gtk.TreeViewColumn("commands", renderer, text=1)
-        self.macros_list.append_column(column)
-        self.ini[config.SectionMacro].clear()
-
-    def on_save_config(self, widget):
-        self.ini.set(config.SectionMain, config.KeyExecutable, self.exe_path_edit.get_text())
-        self.ini.set(config.SectionBase, config.KeyUser, self.UserE.get_text())
-        self.ini.set(config.SectionBase, config.KeyPass, base64.b64encode(self.PassE.get_text().encode('UTF-8')).decode('UTF-8'))
-        self.ini.set(config.SectionBase, config.KeyBakcupPath, self.bak_path_edit.get_text())
-        self.ini.set(config.SectionBase, config.KeyPath, self.base_path_edit.get_text())
-        self.ini.set(config.SectionBase, config.KeyBackupCount, self.bak_count_edit.get_text())
-        self.ini.set(config.SectionBase, config.KeyPageSize, self.page_size_edit.get_text())
-
-        for i, cmd in enumerate(self.macros_liststore):
-            key = "{}_{}".format(i, cmd[0])
-            self.ini.set(config.SectionMacro, key, cmd[1])
-        self.ini.write()
-        log.info("Настройки сохранены")
-
     def onDestroy(self, *args):
         Gtk.main_quit()
+
+    def on_click_about(self, widget):
+        dlg = Gtk.MessageDialog(parent=self.wmain,
+                                title="upd_1c",
+                                text="""Программа для пакетного обновления типовых конфигураций!
+Version: {ver}
+Автор: Дмитрий Воротилин, dvor85@gmail.com""".format(ver=config.Version))
+        dlg.add_buttons(Gtk.STOCK_OK,
+                        Gtk.ResponseType.OK)
+        dlg.run()
+        dlg.destroy()
 
     def macrosAction(self, action, param=None, *args, **kwargs):
         try:
@@ -348,7 +385,8 @@ class Mainform():
 
     def on_updateIB(self, widget):
         action = BaseActions['ba_update']
-        fn = self.ChooserDialog(widget, filename=self.bak_path_edit.get_text(), pattern="*.cf|*.cfu")
+        fn = self.ChooserDialog(widget, filename=self.bak_path_edit.get_text(),
+                                pattern="*.cf|*.cfu", title="Выберите файл конфигурации")
         if not fn:
             return
         if self.commands_menu.get_name() == "menu":
@@ -408,7 +446,7 @@ class Mainform():
 
     def on_restoreIB(self, widget):
         action = BaseActions['ba_restoreib']
-        fn = self.ChooserDialog(widget, filename=self.bak_path_edit.get_text(), pattern="*.dt")
+        fn = self.ChooserDialog(widget, filename=self.bak_path_edit.get_text(), pattern="*.dt", title="Выберите файл выгрузки")
         if not fn:
             return
         if self.commands_menu.get_name() == "menu":
@@ -435,7 +473,8 @@ class Mainform():
 
     def on_loadCFG(self, widget):
         action = BaseActions['ba_loadcfg']
-        fn = self.ChooserDialog(widget, filename=self.bak_path_edit.get_text(), pattern="*.cf|*.cfe")
+        fn = self.ChooserDialog(widget, filename=self.bak_path_edit.get_text(), pattern="*.cf|*.cfe",
+                                title="Выберите файл конфигурации или расширения")
         if not fn:
             return
         if self.commands_menu.get_name() == "menu":
@@ -517,9 +556,9 @@ class Mainform():
         _filter.add_pattern(pattern)
         dialog.add_filter(_filter)
 
-    def ChooserDialog(self, widget, action=Gtk.FileChooserAction.OPEN, filename=None, pattern=None):
+    def ChooserDialog(self, widget, action=Gtk.FileChooserAction.OPEN, filename=None, pattern=None, title=None):
         dialog = Gtk.FileChooserDialog(
-            title="Please choose a file", parent=None, action=action
+            title=title, parent=self.wmain, action=action
         )
         try:
             dialog.add_buttons(
@@ -542,17 +581,19 @@ class Mainform():
             dialog.destroy()
 
     def on_exe_path_btn_clicked(self, widget):
-        fn = self.ChooserDialog(widget, filename=self.exe_path_edit.get_text(), pattern="*")
+        fn = self.ChooserDialog(widget, filename=self.exe_path_edit.get_text(), pattern="*", title="Выберите исполняемый файл 1с")
         if fn:
             self.exe_path_edit.set_text(fn)
 
     def on_base_path_btn_clicked(self, widget):
-        fn = self.ChooserDialog(widget, action=Gtk.FileChooserAction.SELECT_FOLDER, filename=self.base_path_edit.get_text())
+        fn = self.ChooserDialog(widget, action=Gtk.FileChooserAction.SELECT_FOLDER,
+                                filename=self.base_path_edit.get_text(), title="Выберите каталог с базой 1с")
         if fn:
             self.base_path_edit.set_text(fn)
 
     def on_bak_path_btn_clicked(self, widget):
-        fn = self.ChooserDialog(widget, action=Gtk.FileChooserAction.SELECT_FOLDER, filename=self.bak_path_edit.get_text())
+        fn = self.ChooserDialog(widget, action=Gtk.FileChooserAction.SELECT_FOLDER,
+                                filename=self.bak_path_edit.get_text(), title="Выберитите каталог для бэкапа")
         if fn:
             self.bak_path_edit.set_text(fn)
 
