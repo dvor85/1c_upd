@@ -205,7 +205,8 @@ class Mainform():
                 # self.commands_menu.attach_to_widget(widget)
             # self.macros_menu.get_children()[0].add_child(self.commands_menu, None, None)
             self.commands_menu.set_name("macros")
-            self.macros_menu.popup_at_pointer(None)
+            self.commands_menu.popup(None, None, None, None, event.button, event.time)
+            # self.macros_menu.popup_at_pointer(None)
 
     def on_commands_menu_select(self, widget):
         self.commands_menu.set_name("menu")

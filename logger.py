@@ -3,7 +3,7 @@
 
 import logging
 import sys
-import os
+from pathlib import Path
 from logging.handlers import RotatingFileHandler as RFHandler
 
 _log_format = f"%(asctime)-20s %(levelname)7s: [%(module)s->%(funcName)s]: %(message)s"
@@ -77,7 +77,8 @@ def get_logger(name, logfile=None, level=logging.NOTSET, callback=None):
     log = logging.getLogger(name)
     log.setLevel(level)
     if logfile is not None:
-        os.makedirs(os.path.dirname(logfile), exist_ok=True)
+        Path(logfile).parent.mkdir(parents=True, exist_ok=True)
+        # os.makedirs(os.path.dirname(logfile), exist_ok=True)
         rfh = RFHandler(filename=logfile, maxBytes=1024 * 1024, backupCount=2)
         rfh.setFormatter(logging.Formatter(_log_format))
         log.addHandler(rfh)
