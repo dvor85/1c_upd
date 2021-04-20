@@ -23,6 +23,12 @@ from gi.repository import Gtk  # @IgnorePep8
 global log
 
 IS_WIN = sys.platform.startswith("win")
+if getattr(sys, 'frozen', False):
+    # we are running in a bundle
+    self_dir = sys._MEIPASS  # @UndefinedVariable
+else:
+    # we are running in a normal Python environment
+    self_dir = Path(__file__).parent
 
 BaseActions = dict(ba_update=0, ba_dumpib=1, ba_restoreib=2, ba_dumpcfg=3,
                    ba_loadcfg=4, ba_check=5, ba_enterprise=6, ba_config=7,
@@ -43,7 +49,7 @@ class Options():
 
     def __init__(self):
         parser = argparse.ArgumentParser(prog=Path(__file__).name, add_help=True)
-        parser.add_argument('ini_file', nargs="?", default=str(Path(os.path.dirname(__file__)) / 'upd_1c.ini'),
+        parser.add_argument('ini_file', nargs="?", default=str(Path(sys.executable).with_name('upd_1c.ini')),
                             help='Path to ini file')
         parser.add_argument('--not-interactive', '-n', action='store_true', default=False,
                             help='Run in non interactive mode')
@@ -70,7 +76,7 @@ class MyThread(threading.Thread):
 class TestCheck():
     def __init__(self, params=[4]):
         self.builder = Gtk.Builder()
-        self.builder.add_from_file("forms/testcheck.glade")
+        self.builder.add_from_file(str(Path(self_dir) / "forms/testcheck.glade"))
         self.testcheck_dlg = self.builder.get_object('testcheckform')
         self.testcheck_dlg.add_buttons(
             Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL, Gtk.STOCK_OK, Gtk.ResponseType.OK
@@ -107,7 +113,7 @@ class Mainform():
         self.logfile = Path(self.options.ini_file).parent / 'logs' / Path(self.options.ini_file).with_suffix(".log").name
         log = logger.get_logger(__name__, self.logfile, level=logging.DEBUG, callback=self.logs_callback)
         builder = Gtk.Builder()
-        builder.add_from_file("forms/mainform.glade")
+        builder.add_from_file(str(Path(self_dir) / "forms/mainform.glade"))
         builder.connect_signals(self)
         self.wmain = builder.get_object("mainform")
         self.UserE = builder.get_object('UserE')
@@ -205,7 +211,7 @@ class Mainform():
                 # self.commands_menu.attach_to_widget(widget)
             # self.macros_menu.get_children()[0].add_child(self.commands_menu, None, None)
             self.commands_menu.set_name("macros")
-            self.commands_menu.popup(None, None, None, None, event.button, event.time)
+            self.macros_menu.popup(None, None, None, None, event.button, event.time)
             # self.macros_menu.popup_at_pointer(None)
 
     def on_commands_menu_select(self, widget):
@@ -318,7 +324,7 @@ Version: {ver}
                 title = 'Восстановление физической целостности'
                 log.info(title)
                 suf = ".exe" if IS_WIN else ""
-                subprocess.check_call([str(Path(self.exe_path_edit.get_text()).parent / 'chdbfl' + suf)])
+                subprocess.check_call([Path(self.exe_path_edit.get_text()).parent / 'chdbfl{}'.format(suf)])
                 log.info('{} завершено!'.format(title))
 
             elif action == BaseActions['ba_check']:
@@ -350,7 +356,7 @@ Version: {ver}
                 log.info('{} с размером страницы {}k'.format(title, param))
                 if param is not None:
                     suf = ".exe" if IS_WIN else ""
-                    proc = [Path(self.exe_path_edit.get_text()).parent / 'cnvdbfl' + suf]
+                    proc = [Path(self.exe_path_edit.get_text()).parent / 'cnvdbfl{}'.format(suf)]
                     proc.append('--convert')
                     proc.append('--format=8.3.8')
                     proc.append('--page={}k'.format(param))

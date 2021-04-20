@@ -4,10 +4,8 @@ Created on 26 мар. 2021 г.
 @author: demon
 '''
 import configparser
-import os
-from collections import UserDict
 
-Version = '2.2.5l'
+Version = '2.2.5-gtk'
 SectionMain = 'Main'
 KeyExecutable = 'Executable'
 SectionBase = 'Base'
