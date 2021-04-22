@@ -14,6 +14,21 @@
     <property name="step_increment">1</property>
     <property name="page_increment">10</property>
   </object>
+  <object class="GtkImage" id="image1">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <property name="stock">gtk-open</property>
+  </object>
+  <object class="GtkImage" id="image2">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <property name="stock">gtk-open</property>
+  </object>
+  <object class="GtkImage" id="image3">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <property name="stock">gtk-open</property>
+  </object>
   <object class="GtkTextBuffer" id="logs_textbuffer"/>
   <object class="GtkListStore" id="macros_liststore">
     <columns>
@@ -25,6 +40,7 @@
   </object>
   <object class="GtkWindow" id="mainform">
     <property name="can_focus">False</property>
+    <property name="icon_name">face-glasses</property>
     <property name="has_resize_grip">True</property>
     <signal name="destroy" handler="onDestroy" swapped="no"/>
     <child type="titlebar">
@@ -293,6 +309,7 @@
                   <object class="GtkBox">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
+                    <property name="spacing">4</property>
                     <property name="baseline_position">top</property>
                     <child>
                       <object class="GtkLabel">
@@ -322,11 +339,11 @@
                     </child>
                     <child>
                       <object class="GtkButton" id="exe_path_btn">
-                        <property name="label">gtk-edit</property>
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="receives_default">True</property>
-                        <property name="use_stock">True</property>
+                        <property name="image">image2</property>
+                        <property name="always_show_image">True</property>
                         <signal name="clicked" handler="on_exe_path_btn_clicked" swapped="no"/>
                       </object>
                       <packing>
@@ -375,6 +392,7 @@
                       <object class="GtkBox">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
+                        <property name="spacing">4</property>
                         <property name="baseline_position">top</property>
                         <child>
                           <object class="GtkLabel">
@@ -403,11 +421,10 @@
                         </child>
                         <child>
                           <object class="GtkButton" id="base_path_btn">
-                            <property name="label">gtk-edit</property>
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
                             <property name="receives_default">True</property>
-                            <property name="use_stock">True</property>
+                            <property name="image">image1</property>
                             <signal name="clicked" handler="on_base_path_btn_clicked" swapped="no"/>
                           </object>
                           <packing>
@@ -581,11 +598,10 @@
                         </child>
                         <child>
                           <object class="GtkButton" id="bak_path_btn">
-                            <property name="label">gtk-edit</property>
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
                             <property name="receives_default">True</property>
-                            <property name="use_stock">True</property>
+                            <property name="image">image3</property>
                             <signal name="clicked" handler="on_bak_path_btn_clicked" swapped="no"/>
                           </object>
                           <packing>

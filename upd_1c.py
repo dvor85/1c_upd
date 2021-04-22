@@ -26,9 +26,11 @@ IS_WIN = sys.platform.startswith("win")
 if getattr(sys, 'frozen', False):
     # we are running in a bundle
     self_dir = sys._MEIPASS  # @UndefinedVariable
+    executable = sys.executable
 else:
     # we are running in a normal Python environment
-    self_dir = Path(__file__).parent
+    self_dir = Path(__file__).parent.as_posix()
+    executable = __file__
 
 BaseActions = dict(ba_update=0, ba_dumpib=1, ba_restoreib=2, ba_dumpcfg=3,
                    ba_loadcfg=4, ba_check=5, ba_enterprise=6, ba_config=7,
@@ -48,10 +50,10 @@ class Options():
         return Options._instance
 
     def __init__(self):
-        parser = argparse.ArgumentParser(prog=Path(__file__).name, add_help=True)
-        parser.add_argument('ini_file', nargs="?", default=str(Path(sys.executable).with_name('upd_1c.ini')),
+        parser = argparse.ArgumentParser(prog=Path(executable).name, add_help=True)
+        parser.add_argument('ini_file', nargs="?", default=str(Path(executable).with_name('upd_1c.ini')),
                             help='Path to ini file')
-        parser.add_argument('--not-interactive', '-n', action='store_true', default=False,
+        parser.add_argument('--not_interactive', '-n', action='store_true', default=False,
                             help='Run in non interactive mode')
 
         self.options = parser.parse_args()
@@ -135,8 +137,11 @@ class Mainform():
         self.populate_liststore_menu()
         self.configure()
         self.main_thread = None
-        self.wmain.show_all()
-        Gtk.main()
+        if self.options.not_interactive:
+            self.macrosAction(BaseActions['ba_macro'])
+        else:
+            self.wmain.show_all()
+            Gtk.main()
 
     def configure(self, widget=None):
         self.wmain.set_title('Upd_1c')
@@ -211,8 +216,8 @@ class Mainform():
                 # self.commands_menu.attach_to_widget(widget)
             # self.macros_menu.get_children()[0].add_child(self.commands_menu, None, None)
             self.commands_menu.set_name("macros")
-            self.macros_menu.popup(None, None, None, None, event.button, event.time)
-            # self.macros_menu.popup_at_pointer(None)
+            # self.macros_menu.popup(None, None, None, None, event.button, event.time)
+            self.macros_menu.popup_at_pointer(None)
 
     def on_commands_menu_select(self, widget):
         self.commands_menu.set_name("menu")
@@ -530,6 +535,8 @@ Version: {ver}
         dialog = Gtk.FileChooserDialog(
             title=title, parent=self.wmain, action=action
         )
+        dialog.set_local_only(False)
+        dialog
         try:
             dialog.add_buttons(
                 Gtk.STOCK_CANCEL,
