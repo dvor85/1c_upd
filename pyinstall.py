@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 from pathlib import Path
 import subprocess
@@ -36,14 +36,12 @@ else:
 # Добавить этот текст для удаления лишнего из конечного файла
 # a.datas = TOC([x for x in a.datas if
     # not ((x[0].startswith("share/icons") or
-    # x[0].startswith("share/themes"))) or
-    # x[0].startswith("share/icons/Adwaita") or
-    # x[0].startswith("share/icons/hicolor")])
-# a.datas = TOC([x for x in a.datas if
-    # not ((x[0].startswith("share/icons/Adwaita/512x512") or
-    # x[0].startswith("share/icons/Adwaita/256x256") or
-    # x[0].startswith("share/icons/Adwaita/scalable") or
-    # x[0].startswith("share/icons/Adwaita/cursors") or
-    # x[0].startswith("share/icons/hicolor/512x512") or
-    # x[0].startswith("share/icons/hicolor/256x256") or
-    # x[0].startswith("share/icons/hicolor/scalable")))])
+    # x[0].startswith("share/themes")or
+    # x[0].startswith("share/locale"))) or
+    # x[0].startswith("share/icons/Adwaita/16x16") or
+    # x[0].startswith("share/icons/Adwaita/32x32") or
+    # x[0].startswith("share/icons/Adwaita/index.theme") or
+    # x[0].startswith("share/icons/hicolor/16x16") or
+    # x[0].startswith("share/icons/hicolor/32x32") or
+    # x[0].startswith("share/icons/hicolor/index.theme") or
+    # x[0].startswith("share/locale/ru")])
