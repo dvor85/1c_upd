@@ -1,13 +1,15 @@
 program upd_1c;
 
 {$mode objfpc}{$H+}
+{$DEFINE UseCThreads}
 
 uses
-  {$IFDEF UNIX}//{$IFDEF UseCThreads}
+  {$IFDEF UNIX}{$IFDEF UseCThreads}
   cthreads,
-  {$ENDIF}//{$ENDIF}
+  cmem,
+  {$ENDIF}{$ENDIF}
   Interfaces, // this includes the LCL widgetset
-  Forms, main, CheckAndRepairForm, datetimectrls;
+  Forms, main, CheckAndRepairForm, datetimectrls, lazcontrols;
 
 {$R *.res}
 

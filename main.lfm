@@ -1,11 +1,11 @@
 object Form1: TForm1
-  Left = 488
-  Height = 498
-  Top = 179
-  Width = 679
+  Left = 504
+  Height = 529
+  Top = 161
+  Width = 787
   Caption = 'Обновление 1с'
-  ClientHeight = 474
-  ClientWidth = 679
+  ClientHeight = 505
+  ClientWidth = 787
   Menu = MainMenu1
   OnClose = FormClose
   OnCloseQuery = FormCloseQuery
@@ -14,20 +14,20 @@ object Form1: TForm1
   LCLVersion = '2.0.6.0'
   object GroupBox1: TGroupBox
     Left = 0
-    Height = 68
+    Height = 75
     Top = 45
-    Width = 679
+    Width = 787
     Align = alTop
     Caption = 'База'
-    ClientHeight = 51
-    ClientWidth = 677
+    ClientHeight = 58
+    ClientWidth = 785
     ParentFont = False
     TabOrder = 1
-    object LabeledEdit2: TLabeledEdit
-      Left = 33
+    object basepath_edit: TLabeledEdit
+      Left = 40
       Height = 27
       Top = -3
-      Width = 571
+      Width = 696
       Anchors = [akTop, akLeft, akRight]
       EditLabel.Height = 14
       EditLabel.Width = 29
@@ -39,20 +39,55 @@ object Form1: TForm1
       TabOrder = 0
     end
     object BitBtn1: TBitBtn
-      Left = 608
-      Height = 23
-      Top = -4
-      Width = 65
+      Left = 743
+      Height = 25
+      Top = -3
+      Width = 32
       Anchors = [akTop, akRight]
-      Caption = 'Выбрать'
+      Glyph.Data = {
+        36040000424D3604000000000000360000002800000010000000100000000100
+        2000000000000004000064000000640000000000000000000000000000000000
+        0000000000000000000000000000000000000000000000000000000000000000
+        0000000000000000000000000000000000000000000000000000636866BF4E52
+        50FF4E5250FF4D504EFF4D504EFF4D504EFF4D504EFF4D504EFF4D504EFF4D50
+        4EFF4E5250FF4E5250FF4E5250FF4D504EFF555957F25357554C535755FFAEBF
+        BEFFAFC1C0FFAEC0BFFFAEC0BFFFAEC0BFFFAFC1C0FFAFC1C0FFAFC0BFFFAFC0
+        BFFFAFC0BFFFAEC0BFFFAEC0BFFFAFBFBEFFA6B3B2FF535755CE535755FFC2D1
+        CFFF9BB2B1FF9BB2B1FF9BB2B1FF9BB2B1FF9BB2B1FF9BB2B1FF9BB2B1FF9BB2
+        B1FF9BB2B1FF9BB2B1FF9BB2B1FF99B0AFFFB5C1C0FF535755DD535755FFC3D1
+        D0FFC2D0CFFFC2D0CFFFC2D0CFFFC2D0CFFFC2D0CFFFB3C4C3FF99B0AFFF9AB1
+        B0FF9AB1B0FF9AB1B0FF9AB1B0FF9AB1B0FFC4D1D0FF535755EA535755FF6064
+        62FF4B4F4DFF4B4F4DFF4B4F4DFF4B4F4DFF909D9CFFB7C4C3FFC4D2D1FFC4D2
+        D1FFC2D0CFFFBECDCBFFBECCCAFFBBCAC9FF818987FF535755FF535755FF9AAE
+        AAFF6B7D7BFF6B7D7BFF535755FFFFFFFFFFADB1B1FF4D514FFF4A4E4CFF4A4E
+        4CFF4A4E4CFF4A4E4CFF4A4E4CFF4B4F4DFF565A58FF565A58A7535755FF96A9
+        A7FF708481FF708481FF535755FFFFFFFFFFECEEEEFFECEEEEFFECEEEEFFECEE
+        EEFFECEEEEFFFFFFFFFF535755FF839290FF535755FF00000000535755FF9EB0
+        AEFF788D8AFF788D8AFF535755FFFFFFFFFFBCBEBEFFBCBEBEFFBCBEBEFFBCBE
+        BEFFBCBEBEFFFFFFFFFF535755FF839290FF535755FF00000000535755FFA0B2
+        B0FF788D8AFF7B8F8CFF535755FFFFFFFFFFECEEEEFFECEEEEFFECEEEEFFECEE
+        EEFFECEEEEFFFFFFFFFF535755FF8C9A98FF535755FF00000000535755FFA3B5
+        B3FF7E928FFF7E928FFF535755FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
+        FFFFFFFFFFFFFFFFFFFF535755FF919F9DFF535755FF00000000535755FFA3B5
+        B3FF7E928FFF7E928FFF5E6664FF535755FF535755FF535755FF535755FF5357
+        55FF535755FF535755FF656F6DFF919F9DFF535755FF00000000535755FFA3B5
+        B3FF7E928FFF7E928FFF7E918FFF819492FF9AAAA9FF93A4A2FF95A4A3FF96A5
+        A3FF96A5A3FF96A5A3FF96A5A3FF919F9DFF535755FF00000000535755FFAABD
+        BBFF889D9AFF879C9AFF869B99FF9FB0AFFF535755FF535755FF535755FF5357
+        55FF535755FF535755FF535755FF535755FF636866BF00000000535755FFB2C3
+        C1FFB5C5C3FFB5C5C3FFB5C5C3FFACBAB9FF535755FF00000000000000000000
+        0000000000000000000000000000000000000000000000000000686C6ADF5357
+        55FF535755FF535755FF535755FF535755FF676B69D500000000000000000000
+        0000000000000000000000000000000000000000000000000000
+      }
       OnClick = BitBtn1Click
       ParentFont = False
       TabOrder = 1
     end
-    object LabeledEdit4: TLabeledEdit
-      Left = 82
+    object user_edit: TLabeledEdit
+      Left = 112
       Height = 27
-      Top = 24
+      Top = 27
       Width = 196
       EditLabel.Height = 14
       EditLabel.Width = 89
@@ -63,10 +98,10 @@ object Form1: TForm1
       ParentFont = False
       TabOrder = 2
     end
-    object LabeledEdit5: TLabeledEdit
-      Left = 319
+    object pass_edit: TLabeledEdit
+      Left = 376
       Height = 27
-      Top = 24
+      Top = 27
       Width = 196
       EchoMode = emPassword
       EditLabel.Height = 14
@@ -79,10 +114,10 @@ object Form1: TForm1
       PasswordChar = '*'
       TabOrder = 3
     end
-    object SpinEdit2: TSpinEdit
-      Left = 614
+    object pagesize_edit: TSpinEdit
+      Left = 728
       Height = 27
-      Top = 24
+      Top = 27
       Width = 47
       Increment = 8
       MaxValue = 64
@@ -92,104 +127,87 @@ object Form1: TForm1
       Value = 8
     end
     object Label2: TLabel
-      Left = 521
+      Left = 604
       Height = 14
-      Top = 27
+      Top = 32
       Width = 111
       Caption = 'Размер страницы'
-      ParentColor = False
-      ParentFont = False
-    end
-    object Label3: TLabel
-      Left = 665
-      Height = 14
-      Top = 27
-      Width = 7
-      Caption = 'k'
       ParentColor = False
       ParentFont = False
     end
   end
   object GroupBox2: TGroupBox
     Left = 0
-    Height = 271
-    Top = 186
-    Width = 679
+    Height = 322
+    Top = 166
+    Width = 787
     Align = alClient
-    Caption = 'Обновления'
-    ClientHeight = 254
-    ClientWidth = 677
+    Caption = 'Команды'
+    ClientHeight = 305
+    ClientWidth = 785
     ParentFont = False
     TabOrder = 2
-    object ListBox1: TListBox
-      Left = 267
-      Height = 179
-      Top = 0
-      Width = 410
-      Align = alClient
-      ItemHeight = 0
-      ParentFont = False
-      PopupMenu = PopupMenu1
-      ScrollWidth = 408
-      TabOrder = 0
-      TopIndex = -1
-    end
-    object Memo1: TMemo
-      Left = 0
-      Height = 71
-      Top = 183
-      Width = 677
-      Align = alBottom
-      ParentFont = False
-      ReadOnly = True
-      ScrollBars = ssAutoBoth
-      TabOrder = 1
-    end
     object Splitter1: TSplitter
       Cursor = crVSplit
       Left = 0
       Height = 4
-      Top = 179
-      Width = 677
+      Top = 196
+      Width = 785
       Align = alBottom
       ResizeAnchor = akBottom
     end
-    object Splitter2: TSplitter
-      Left = 262
-      Height = 179
-      Top = 0
-      Width = 5
-    end
-    object ListBox2: TListBox
+    object macro_list: TListBox
       Left = 0
-      Height = 179
+      Height = 196
       Top = 0
-      Width = 262
-      Align = alLeft
+      Width = 785
+      Align = alClient
       ItemHeight = 0
       ParentFont = False
       PopupMenu = PopupMenu2
-      ScrollWidth = 260
-      TabOrder = 4
+      ScrollWidth = 783
+      TabOrder = 1
       TopIndex = -1
+    end
+    object GroupBox5: TGroupBox
+      Left = 0
+      Height = 105
+      Top = 200
+      Width = 785
+      Align = alBottom
+      Caption = 'Логи'
+      ClientHeight = 88
+      ClientWidth = 783
+      TabOrder = 2
+      object logs_memo: TMemo
+        Left = 0
+        Height = 88
+        Top = 0
+        Width = 783
+        Align = alClient
+        ParentFont = False
+        ReadOnly = True
+        ScrollBars = ssAutoBoth
+        TabOrder = 0
+      end
     end
   end
   object GroupBox3: TGroupBox
     Left = 0
     Height = 45
     Top = 0
-    Width = 679
+    Width = 787
     Align = alTop
     Caption = 'Программа 1с'
     ClientHeight = 28
-    ClientWidth = 677
+    ClientWidth = 785
     ParentFont = False
     TabOrder = 0
-    object LabeledEdit3: TLabeledEdit
-      Left = 33
+    object executable_edit: TLabeledEdit
+      Left = 40
       Height = 27
       Top = -1
-      Width = 570
+      Width = 696
       Anchors = [akTop, akLeft, akRight]
       EditLabel.Height = 14
       EditLabel.Width = 29
@@ -199,15 +217,50 @@ object Form1: TForm1
       LabelPosition = lpLeft
       ParentFont = False
       TabOrder = 0
-      OnChange = LabeledEdit3Change
+      OnChange = executable_editChange
     end
     object BitBtn2: TBitBtn
-      Left = 608
-      Height = 23
+      Left = 744
+      Height = 25
       Top = -1
-      Width = 65
+      Width = 32
       Anchors = [akTop, akRight]
-      Caption = 'Выбрать'
+      Glyph.Data = {
+        36040000424D3604000000000000360000002800000010000000100000000100
+        2000000000000004000064000000640000000000000000000000000000000000
+        0000000000000000000000000000000000000000000000000000000000000000
+        0000000000000000000000000000000000000000000000000000636866BF4E52
+        50FF4E5250FF4D504EFF4D504EFF4D504EFF4D504EFF4D504EFF4D504EFF4D50
+        4EFF4E5250FF4E5250FF4E5250FF4D504EFF555957F25357554C535755FFAEBF
+        BEFFAFC1C0FFAEC0BFFFAEC0BFFFAEC0BFFFAFC1C0FFAFC1C0FFAFC0BFFFAFC0
+        BFFFAFC0BFFFAEC0BFFFAEC0BFFFAFBFBEFFA6B3B2FF535755CE535755FFC2D1
+        CFFF9BB2B1FF9BB2B1FF9BB2B1FF9BB2B1FF9BB2B1FF9BB2B1FF9BB2B1FF9BB2
+        B1FF9BB2B1FF9BB2B1FF9BB2B1FF99B0AFFFB5C1C0FF535755DD535755FFC3D1
+        D0FFC2D0CFFFC2D0CFFFC2D0CFFFC2D0CFFFC2D0CFFFB3C4C3FF99B0AFFF9AB1
+        B0FF9AB1B0FF9AB1B0FF9AB1B0FF9AB1B0FFC4D1D0FF535755EA535755FF6064
+        62FF4B4F4DFF4B4F4DFF4B4F4DFF4B4F4DFF909D9CFFB7C4C3FFC4D2D1FFC4D2
+        D1FFC2D0CFFFBECDCBFFBECCCAFFBBCAC9FF818987FF535755FF535755FF9AAE
+        AAFF6B7D7BFF6B7D7BFF535755FFFFFFFFFFADB1B1FF4D514FFF4A4E4CFF4A4E
+        4CFF4A4E4CFF4A4E4CFF4A4E4CFF4B4F4DFF565A58FF565A58A7535755FF96A9
+        A7FF708481FF708481FF535755FFFFFFFFFFECEEEEFFECEEEEFFECEEEEFFECEE
+        EEFFECEEEEFFFFFFFFFF535755FF839290FF535755FF00000000535755FF9EB0
+        AEFF788D8AFF788D8AFF535755FFFFFFFFFFBCBEBEFFBCBEBEFFBCBEBEFFBCBE
+        BEFFBCBEBEFFFFFFFFFF535755FF839290FF535755FF00000000535755FFA0B2
+        B0FF788D8AFF7B8F8CFF535755FFFFFFFFFFECEEEEFFECEEEEFFECEEEEFFECEE
+        EEFFECEEEEFFFFFFFFFF535755FF8C9A98FF535755FF00000000535755FFA3B5
+        B3FF7E928FFF7E928FFF535755FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
+        FFFFFFFFFFFFFFFFFFFF535755FF919F9DFF535755FF00000000535755FFA3B5
+        B3FF7E928FFF7E928FFF5E6664FF535755FF535755FF535755FF535755FF5357
+        55FF535755FF535755FF656F6DFF919F9DFF535755FF00000000535755FFA3B5
+        B3FF7E928FFF7E928FFF7E918FFF819492FF9AAAA9FF93A4A2FF95A4A3FF96A5
+        A3FF96A5A3FF96A5A3FF96A5A3FF919F9DFF535755FF00000000535755FFAABD
+        BBFF889D9AFF879C9AFF869B99FF9FB0AFFF535755FF535755FF535755FF5357
+        55FF535755FF535755FF535755FF535755FF636866BF00000000535755FFB2C3
+        C1FFB5C5C3FFB5C5C3FFB5C5C3FFACBAB9FF535755FF00000000000000000000
+        0000000000000000000000000000000000000000000000000000686C6ADF5357
+        55FF535755FF535755FF535755FF535755FF676B69D500000000000000000000
+        0000000000000000000000000000000000000000000000000000
+      }
       OnClick = BitBtn2Click
       ParentFont = False
       TabOrder = 1
@@ -216,27 +269,27 @@ object Form1: TForm1
   object StatusBar1: TStatusBar
     Left = 0
     Height = 17
-    Top = 457
-    Width = 679
+    Top = 488
+    Width = 787
     Panels = <>
     ParentFont = False
   end
   object GroupBox4: TGroupBox
     Left = 0
-    Height = 73
-    Top = 113
-    Width = 679
+    Height = 46
+    Top = 120
+    Width = 787
     Align = alTop
     Caption = 'Резервная копия'
-    ClientHeight = 56
-    ClientWidth = 677
+    ClientHeight = 29
+    ClientWidth = 785
     ParentFont = False
     TabOrder = 4
-    object LabeledEdit1: TLabeledEdit
-      Left = 94
+    object bakpath_edit: TLabeledEdit
+      Left = 112
       Height = 27
       Top = -2
-      Width = 509
+      Width = 460
       Anchors = [akTop, akLeft, akRight]
       EditLabel.Height = 14
       EditLabel.Width = 102
@@ -248,30 +301,67 @@ object Form1: TForm1
       TabOrder = 0
     end
     object BitBtn3: TBitBtn
-      Left = 608
-      Height = 23
+      Left = 579
+      Height = 25
       Top = -2
-      Width = 65
+      Width = 32
       Anchors = [akTop, akRight]
-      Caption = 'Выбрать'
+      Default = True
+      Glyph.Data = {
+        36040000424D3604000000000000360000002800000010000000100000000100
+        2000000000000004000064000000640000000000000000000000000000000000
+        0000000000000000000000000000000000000000000000000000000000000000
+        0000000000000000000000000000000000000000000000000000636866BF4E52
+        50FF4E5250FF4D504EFF4D504EFF4D504EFF4D504EFF4D504EFF4D504EFF4D50
+        4EFF4E5250FF4E5250FF4E5250FF4D504EFF555957F25357554C535755FFAEBF
+        BEFFAFC1C0FFAEC0BFFFAEC0BFFFAEC0BFFFAFC1C0FFAFC1C0FFAFC0BFFFAFC0
+        BFFFAFC0BFFFAEC0BFFFAEC0BFFFAFBFBEFFA6B3B2FF535755CE535755FFC2D1
+        CFFF9BB2B1FF9BB2B1FF9BB2B1FF9BB2B1FF9BB2B1FF9BB2B1FF9BB2B1FF9BB2
+        B1FF9BB2B1FF9BB2B1FF9BB2B1FF99B0AFFFB5C1C0FF535755DD535755FFC3D1
+        D0FFC2D0CFFFC2D0CFFFC2D0CFFFC2D0CFFFC2D0CFFFB3C4C3FF99B0AFFF9AB1
+        B0FF9AB1B0FF9AB1B0FF9AB1B0FF9AB1B0FFC4D1D0FF535755EA535755FF6064
+        62FF4B4F4DFF4B4F4DFF4B4F4DFF4B4F4DFF909D9CFFB7C4C3FFC4D2D1FFC4D2
+        D1FFC2D0CFFFBECDCBFFBECCCAFFBBCAC9FF818987FF535755FF535755FF9AAE
+        AAFF6B7D7BFF6B7D7BFF535755FFFFFFFFFFADB1B1FF4D514FFF4A4E4CFF4A4E
+        4CFF4A4E4CFF4A4E4CFF4A4E4CFF4B4F4DFF565A58FF565A58A7535755FF96A9
+        A7FF708481FF708481FF535755FFFFFFFFFFECEEEEFFECEEEEFFECEEEEFFECEE
+        EEFFECEEEEFFFFFFFFFF535755FF839290FF535755FF00000000535755FF9EB0
+        AEFF788D8AFF788D8AFF535755FFFFFFFFFFBCBEBEFFBCBEBEFFBCBEBEFFBCBE
+        BEFFBCBEBEFFFFFFFFFF535755FF839290FF535755FF00000000535755FFA0B2
+        B0FF788D8AFF7B8F8CFF535755FFFFFFFFFFECEEEEFFECEEEEFFECEEEEFFECEE
+        EEFFECEEEEFFFFFFFFFF535755FF8C9A98FF535755FF00000000535755FFA3B5
+        B3FF7E928FFF7E928FFF535755FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
+        FFFFFFFFFFFFFFFFFFFF535755FF919F9DFF535755FF00000000535755FFA3B5
+        B3FF7E928FFF7E928FFF5E6664FF535755FF535755FF535755FF535755FF5357
+        55FF535755FF535755FF656F6DFF919F9DFF535755FF00000000535755FFA3B5
+        B3FF7E928FFF7E928FFF7E918FFF819492FF9AAAA9FF93A4A2FF95A4A3FF96A5
+        A3FF96A5A3FF96A5A3FF96A5A3FF919F9DFF535755FF00000000535755FFAABD
+        BBFF889D9AFF879C9AFF869B99FF9FB0AFFF535755FF535755FF535755FF5357
+        55FF535755FF535755FF535755FF535755FF636866BF00000000535755FFB2C3
+        C1FFB5C5C3FFB5C5C3FFB5C5C3FFACBAB9FF535755FF00000000000000000000
+        0000000000000000000000000000000000000000000000000000686C6ADF5357
+        55FF535755FF535755FF535755FF535755FF676B69D500000000000000000000
+        0000000000000000000000000000000000000000000000000000
+      }
+      ModalResult = 6
       OnClick = BitBtn3Click
       ParentFont = False
       TabOrder = 1
     end
-    object SpinEdit1: TSpinEdit
-      Left = 94
+    object bakcount_edit: TSpinEdit
+      Left = 728
       Height = 27
-      Top = 25
-      Width = 50
+      Top = -2
+      Width = 47
       MinValue = 1
       ParentFont = False
       TabOrder = 2
       Value = 3
     end
     object Label1: TLabel
-      Left = 28
+      Left = 642
       Height = 14
-      Top = 25
+      Top = 2
       Width = 73
       Caption = 'Количество'
       ParentColor = False
@@ -305,93 +395,84 @@ object Form1: TForm1
     left = 354
     top = 267
   end
-  object PopupMenu1: TPopupMenu
-    left = 447
-    top = 280
-    object MenuItem1: TMenuItem
-      Caption = 'Добавить'
-      OnClick = MenuItem1Click
-    end
-    object MenuItem2: TMenuItem
-      Caption = 'Удалить'
-      OnClick = MenuItem2Click
-    end
-    object MenuItem5: TMenuItem
-      Caption = 'Удалить все'
-      OnClick = MenuItem5Click
-    end
-  end
   object MainMenu1: TMainMenu
     left = 240
     top = 254
-    object MenuItem9: TMenuItem
-      Caption = 'Информационная база'
-      object MenuItem6: TMenuItem
+    object commands_menu: TMenuItem
+      Caption = 'Команды'
+      object mi_run_enterprise: TMenuItem
         Caption = 'Запустить 1С'
-        OnClick = MenuItem6Click
+        OnClick = mi_run_enterpriseClick
       end
-      object MenuItem7: TMenuItem
+      object mi_run_designer: TMenuItem
         Caption = 'Запустить конфигуратор'
-        OnClick = MenuItem7Click
+        OnClick = mi_run_designerClick
       end
-      object MenuItem10: TMenuItem
+      object mi_dumpib: TMenuItem
         Caption = 'Выгрузить ИБ'
-        OnClick = MenuItem10Click
+        OnClick = mi_dumpibClick
       end
-      object MenuItem11: TMenuItem
+      object mi_loadib: TMenuItem
         Caption = 'Загрузить ИБ'
-        OnClick = MenuItem11Click
+        OnClick = mi_loadibClick
       end
-      object MenuItem15: TMenuItem
+      object mi_updatecfg: TMenuItem
         Caption = 'Выполнить обновление'
-        OnClick = MenuItem15Click
+        OnClick = mi_updatecfgClick
       end
-      object MenuItem3: TMenuItem
+      object mi_testcheck: TMenuItem
         Caption = 'Тестирование и исправление'
-        OnClick = MenuItem3Click
+        OnClick = mi_testcheckClick
       end
-      object MenuItem31: TMenuItem
+      object mi_delcache: TMenuItem
         Caption = 'Удалить кэш и настройки'
-        OnClick = MenuItem31Click
+        OnClick = mi_delcacheClick
       end
-      object MenuItem39: TMenuItem
+      object mi_convert: TMenuItem
         Caption = 'Конвертиртация файловой ИБ в новый формат'
-        OnClick = MenuItem39Click
+        OnClick = mi_convertClick
       end
-      object MenuItem34: TMenuItem
+      object mi_repairib: TMenuItem
         Caption = 'Восстановление структуры ИБ'
-        OnClick = MenuItem34Click
+        OnClick = mi_repairibClick
       end
-      object MenuItem32: TMenuItem
+      object mi_reduce_journal: TMenuItem
         Caption = 'Сократить журнал регистрации'
-        OnClick = MenuItem32Click
+        OnClick = mi_reduce_journalClick
       end
-      object MenuItem36: TMenuItem
+      object mi_repair_physical: TMenuItem
         Caption = 'Восстановление физической целостности'
-        OnClick = MenuItem36Click
+        OnClick = mi_repair_physicalClick
       end
-    end
-    object MenuItem12: TMenuItem
-      Caption = 'Конфигурация'
-      object MenuItem14: TMenuItem
-        Caption = 'Выгрузить конфигурацию'
-        OnClick = MenuItem14Click
-      end
-      object MenuItem13: TMenuItem
-        Caption = 'Загрузить конфигурацию/расширение'
-        OnClick = MenuItem13Click
+      object MenuItem12: TMenuItem
+        Caption = 'Конфигурация'
+        object mi_dumpcfg: TMenuItem
+          Caption = 'Выгрузить конфигурацию'
+          OnClick = mi_dumpcfgClick
+        end
+        object mi_loadcfg: TMenuItem
+          Caption = 'Загрузить конфигурацию/расширение'
+          OnClick = mi_loadcfgClick
+        end
       end
     end
     object MenuItem26: TMenuItem
       Caption = 'Макрос'
-      object MenuItem27: TMenuItem
+      object mi_runmacro: TMenuItem
         Caption = 'Выполнить'
-        OnClick = MenuItem27Click
+        OnClick = mi_runmacroClick
       end
     end
     object MenuItem8: TMenuItem
-      Caption = 'Сохранить настройки'
+      Caption = 'Настройки'
       OnClick = MenuItem8Click
+      object mi_save_config: TMenuItem
+        Caption = 'Сохранить'
+        OnClick = MenuItem8Click
+      end
+      object mi_reload_config: TMenuItem
+        Caption = 'Перезагрузить'
+      end
     end
     object MenuItem4: TMenuItem
       Caption = 'О программе'
@@ -401,71 +482,16 @@ object Form1: TForm1
   object PopupMenu2: TPopupMenu
     left = 120
     top = 254
-    object MenuItem16: TMenuItem
-      Caption = 'Информационная база'
-      object MenuItem17: TMenuItem
-        Caption = 'Запустить 1С'
-        OnClick = MenuItem17Click
-      end
-      object MenuItem18: TMenuItem
-        Caption = 'Запустить конфигуратор'
-        OnClick = MenuItem18Click
-      end
-      object MenuItem19: TMenuItem
-        Caption = 'Выгрузить ИБ'
-        OnClick = MenuItem19Click
-      end
-      object MenuItem20: TMenuItem
-        Caption = 'Загрузить ИБ'
-        OnClick = MenuItem20Click
-      end
-      object MenuItem21: TMenuItem
-        Caption = 'Выполнить обновление'
-        OnClick = MenuItem21Click
-      end
-      object MenuItem22: TMenuItem
-        Caption = 'Тестирование и исправление'
-        OnClick = MenuItem22Click
-      end
-      object MenuItem30: TMenuItem
-        Caption = 'Удалить кэш и настройки'
-        OnClick = MenuItem30Click
-      end
-      object MenuItem38: TMenuItem
-        Caption = 'Конвертировать файловую ИБ в новый формат'
-        OnClick = MenuItem38Click
-      end
-      object MenuItem35: TMenuItem
-        Caption = 'Восстановление структуры ИБ'
-        OnClick = MenuItem35Click
-      end
-      object MenuItem33: TMenuItem
-        Caption = 'Сократить журнал регистрации'
-        OnClick = MenuItem33Click
-      end
-      object MenuItem37: TMenuItem
-        Caption = 'Восстановление физической целостности'
-        OnClick = MenuItem37Click
-      end
+    object mi_add_to_macro: TMenuItem
+      Caption = 'Добавить'
     end
-    object MenuItem23: TMenuItem
-      Caption = 'Конфигурация'
-      object MenuItem24: TMenuItem
-        Caption = 'Выгрузить конфигурацию'
-        OnClick = MenuItem24Click
-      end
-      object MenuItem25: TMenuItem
-        Caption = 'Загрузить конфигурацию/расширение'
-        OnClick = MenuItem25Click
-      end
-    end
-    object MenuItem28: TMenuItem
+    object mi_del_from_macro: TMenuItem
       Caption = 'Удалить'
-      OnClick = MenuItem28Click
+      OnClick = mi_del_from_macroClick
     end
-    object MenuItem29: TMenuItem
+    object mi_del_all: TMenuItem
       Caption = 'Удалить все'
-      OnClick = MenuItem29Click
+      OnClick = mi_del_allClick
     end
   end
   object CalendarDialog1: TCalendarDialog
@@ -473,8 +499,8 @@ object Form1: TForm1
     Date = 44238
     OKCaption = '&ОК'
     CancelCaption = 'Отмена'
-    left = 401
-    top = 234
+    left = 440
+    top = 224
   end
   object SomeProc: TProcess
     Active = False

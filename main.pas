@@ -7,7 +7,7 @@ interface
 uses
   Classes, SysUtils, process, Forms, Controls, Dialogs, ExtCtrls, StdCtrls,
   Buttons, Menus, ComCtrls, ActnList, Spin, ExtDlgs, FileUtil, IniFiles,
-  lazutf8, LCLIntf, TypInfo, CheckAndRepairForm;
+  lazutf8, ShortPathEdit, LCLIntf, TypInfo, CheckAndRepairForm;
 
 const
   Version: string = '2.2.5';
@@ -48,71 +48,56 @@ type
     BitBtn2: TBitBtn;
     BitBtn3: TBitBtn;
     CalendarDialog1: TCalendarDialog;
+    commands_menu: TMenuItem;
     GroupBox4: TGroupBox;
+    GroupBox5: TGroupBox;
     Label1: TLabel;
     Label2: TLabel;
-    Label3: TLabel;
-    ListBox1: TListBox;
     GroupBox1: TGroupBox;
     GroupBox2: TGroupBox;
     GroupBox3: TGroupBox;
-    LabeledEdit1: TLabeledEdit;
-    LabeledEdit2: TLabeledEdit;
-    LabeledEdit3: TLabeledEdit;
-    LabeledEdit4: TLabeledEdit;
-    LabeledEdit5: TLabeledEdit;
-    ListBox2: TListBox;
+    bakpath_edit: TLabeledEdit;
+    basepath_edit: TLabeledEdit;
+    executable_edit: TLabeledEdit;
+    user_edit: TLabeledEdit;
+    pass_edit: TLabeledEdit;
+    macro_list: TListBox;
     MainMenu1: TMainMenu;
     MenuItem26: TMenuItem;
-    MenuItem27: TMenuItem;
-    MenuItem28: TMenuItem;
-    MenuItem29: TMenuItem;
-    MenuItem30: TMenuItem;
-    MenuItem31: TMenuItem;
-    MenuItem32: TMenuItem;
-    MenuItem33: TMenuItem;
-    MenuItem34: TMenuItem;
-    MenuItem35: TMenuItem;
-    MenuItem36: TMenuItem;
-    MenuItem37: TMenuItem;
-    MenuItem38: TMenuItem;
-    MenuItem39: TMenuItem;
+    mi_runmacro: TMenuItem;
+    mi_del_from_macro: TMenuItem;
+    mi_del_all: TMenuItem;
+    mi_delcache: TMenuItem;
+    mi_reduce_journal: TMenuItem;
+    mi_repairib: TMenuItem;
+    mi_repair_physical: TMenuItem;
+    mi_convert: TMenuItem;
+    mi_save_config: TMenuItem;
+    mi_reload_config: TMenuItem;
+    mi_add_to_macro: TMenuItem;
     PopupMenu2: TPopupMenu;
-    Memo1: TMemo;
-    MenuItem1: TMenuItem;
-    MenuItem10: TMenuItem;
-    MenuItem11: TMenuItem;
+    logs_memo: TMemo;
+    mi_dumpib: TMenuItem;
+    mi_loadib: TMenuItem;
     MenuItem12: TMenuItem;
-    MenuItem13: TMenuItem;
-    MenuItem14: TMenuItem;
-    MenuItem15: TMenuItem;
+    mi_loadcfg: TMenuItem;
+    mi_dumpcfg: TMenuItem;
+    mi_updatecfg: TMenuItem;
     MenuItem16: TMenuItem;
-    MenuItem17: TMenuItem;
-    MenuItem18: TMenuItem;
-    MenuItem19: TMenuItem;
-    MenuItem2: TMenuItem;
-    MenuItem20: TMenuItem;
-    MenuItem21: TMenuItem;
-    MenuItem22: TMenuItem;
-    MenuItem23: TMenuItem;
-    MenuItem24: TMenuItem;
-    MenuItem25: TMenuItem;
-    MenuItem3: TMenuItem;
+    mi_testcheck: TMenuItem;
     MenuItem4: TMenuItem;
-    MenuItem5: TMenuItem;
-    MenuItem6: TMenuItem;
-    MenuItem7: TMenuItem;
+    mi_run_enterprise: TMenuItem;
+    mi_run_designer: TMenuItem;
     MenuItem8: TMenuItem;
     MenuItem9: TMenuItem;
+
     OpenDialog1: TOpenDialog;
-    PopupMenu1: TPopupMenu;
     Process1: TProcess;
     SomeProc: TProcess;
     SelectDirectoryDialog1: TSelectDirectoryDialog;
-    SpinEdit1: TSpinEdit;
-    SpinEdit2: TSpinEdit;
+    bakcount_edit: TSpinEdit;
+    pagesize_edit: TSpinEdit;
     Splitter1: TSplitter;
-    Splitter2: TSplitter;
     StatusBar1: TStatusBar;
 
     procedure BitBtn1Click(Sender: TObject);
@@ -121,41 +106,26 @@ type
     procedure FormClose(Sender: TObject; var CloseAction: TCloseAction);
     procedure FormCloseQuery(Sender: TObject; var CanClose: boolean);
     procedure FormCreate(Sender: TObject);
-    procedure FormShow(Sender: TObject);
-    procedure LabeledEdit3Change(Sender: TObject);
-    procedure MenuItem10Click(Sender: TObject);
-    procedure MenuItem11Click(Sender: TObject);
-    procedure MenuItem13Click(Sender: TObject);
-    procedure MenuItem14Click(Sender: TObject);
-    procedure MenuItem15Click(Sender: TObject);
-    procedure MenuItem17Click(Sender: TObject);
-    procedure MenuItem18Click(Sender: TObject);
-    procedure MenuItem19Click(Sender: TObject);
-    procedure MenuItem1Click(Sender: TObject);
-    procedure MenuItem20Click(Sender: TObject);
-    procedure MenuItem21Click(Sender: TObject);
-    procedure MenuItem22Click(Sender: TObject);
-    procedure MenuItem24Click(Sender: TObject);
-    procedure MenuItem25Click(Sender: TObject);
-    procedure MenuItem27Click(Sender: TObject);
-    procedure MenuItem28Click(Sender: TObject);
-    procedure MenuItem29Click(Sender: TObject);
-    procedure MenuItem2Click(Sender: TObject);
-    procedure MenuItem30Click(Sender: TObject);
-    procedure MenuItem31Click(Sender: TObject);
-    procedure MenuItem32Click(Sender: TObject);
-    procedure MenuItem33Click(Sender: TObject);
-    procedure MenuItem34Click(Sender: TObject);
-    procedure MenuItem35Click(Sender: TObject);
-    procedure MenuItem36Click(Sender: TObject);
-    procedure MenuItem37Click(Sender: TObject);
-    procedure MenuItem38Click(Sender: TObject);
-    procedure MenuItem39Click(Sender: TObject);
-    procedure MenuItem3Click(Sender: TObject);
+    procedure executable_editChange(Sender: TObject);
+    procedure mi_dumpibClick(Sender: TObject);
+    procedure mi_loadibClick(Sender: TObject);
+    procedure mi_loadcfgClick(Sender: TObject);
+    procedure mi_dumpcfgClick(Sender: TObject);
+    procedure mi_updatecfgClick(Sender: TObject);
+
+    procedure mi_runmacroClick(Sender: TObject);
+    procedure mi_del_from_macroClick(Sender: TObject);
+    procedure mi_del_allClick(Sender: TObject);
+
+    procedure mi_delcacheClick(Sender: TObject);
+    procedure mi_reduce_journalClick(Sender: TObject);
+    procedure mi_repairibClick(Sender: TObject);
+    procedure mi_repair_physicalClick(Sender: TObject);
+    procedure mi_convertClick(Sender: TObject);
+    procedure mi_testcheckClick(Sender: TObject);
     procedure MenuItem4Click(Sender: TObject);
-    procedure MenuItem5Click(Sender: TObject);
-    procedure MenuItem6Click(Sender: TObject);
-    procedure MenuItem7Click(Sender: TObject);
+    procedure mi_run_enterpriseClick(Sender: TObject);
+    procedure mi_run_designerClick(Sender: TObject);
     procedure MenuItem8Click(Sender: TObject);
 
   private
@@ -183,6 +153,7 @@ type
     function ReduceEventLogSize(date: string): boolean;
     function CheckPhysicalIntegrity(): boolean;
     function ConvertFileBase(): boolean;
+    function AddMacrosCommand(Sender: TObject; baseAction: TBaseAction; param: string = ''): boolean;
   public
     { public declarations }
   end;
@@ -227,7 +198,7 @@ begin
       StrPCopy(PStr, Str);
       F.Position := F.Size;
       F.Write(PStr^, LengthLogString);
-      Form1.Memo1.Lines.AddText(Str);
+      Form1.logs_memo.Lines.AddText(Str);
       //SendMessage(Form1.Memo1.Handle, EM_LINESCROLL, 0, Form1.Memo1.Lines.Count);
     except
       MessageDlg(Form1.Caption, LogString, mtError, [mbYes], 0);
@@ -299,28 +270,28 @@ begin
         if Process1.Running then
           raise Exception.Create('Процесс уже запущен, дождитесь окончания!');
 
-        if (Process1.Executable = '') or (LabeledEdit2.Text = '') then
+        if (Process1.Executable = '') or (basepath_edit.Text = '') then
           raise Exception.Create('Не заполнены необходимые поля!');
         if (FBaseAction = ba_macro) then
         begin
           currentTask := 0;
-          totalTasks := ListBox1.Count + ListBox2.Count;
-          if (ListBox2.Count < 1) then
+          totalTasks := macro_list.Count + macro_list.Count;
+          if (macro_list.Count < 1) then
             raise Exception.Create('Действия для макроса не заполнены!');
 
-          for i := 0 to ListBox2.Count - 1 do
+          for i := 0 to macro_list.Count - 1 do
           begin
-            params := ListBox2.Items[i].Split(['(', ')']);
+            params := macro_list.Items[i].Split(['(', ')']);
             param := '';
             if length(params) > 1 then
               param := params[1];
-            listbox2.ClearSelection;
-            ListBox2.Selected[i] := True;
-            ExecuteBaseAction(TbaseAction(PtrInt(ListBox2.Items.Objects[i])), param);
+            macro_list.ClearSelection;
+            macro_list.Selected[i] := True;
+            ExecuteBaseAction(TbaseAction(PtrInt(macro_list.Items.Objects[i])), param);
             Inc(currentTask);
             progress := currentTask * 100 div totalTasks;
           end;
-          listbox2.ClearSelection;
+          macro_list.ClearSelection;
           Caption := 'Выполнение макроса успешно завершено!';
           AddLog(LogFile, Caption);
         end
@@ -352,17 +323,17 @@ begin
   case baseAction of
     ba_update:
     begin
-      for i := 0 to ListBox1.Count - 1 do
+      for i := 0 to macro_list.Count - 1 do
       begin
-        ListBox1.ClearSelection;
-        ListBox1.Selected[i] := True;
+        macro_list.ClearSelection;
+        macro_list.Selected[i] := True;
         Caption := 'Установка обновления';
-        AddLog(LogFile, Format('%s: "%s"', [Caption, ListBox1.Items[i]]));
-        if not updateBase(ListBox1.Items[i], (i = ListBox1.Count - 1)) then
+        AddLog(LogFile, Format('%s: "%s"', [Caption, macro_list.Items[i]]));
+        if not updateBase(macro_list.Items[i], (i = macro_list.Count - 1)) then
           raise Exception.Create('Ошибка обновления!');
         Inc(currentTask);
       end;
-      ListBox1.ClearSelection;
+      macro_list.ClearSelection;
     end;
 
     ba_dumpib:
@@ -373,7 +344,7 @@ begin
         raise Exception.Create(Caption + ' не выполнена!');
       Caption := Caption + ' завершена!';
       AddLog(LogFile, Caption);
-      DeleteOld(IncludeTrailingBackslash(ExpandFileName(LabeledEdit1.Text)), '*.dt', SpinEdit1.Value);
+      DeleteOld(IncludeTrailingBackslash(ExpandFileName(bakpath_edit.Text)), '*.dt', bakcount_edit.Value);
     end;
 
     ba_restoreib:
@@ -394,7 +365,7 @@ begin
         raise Exception.Create('Кофигурация не выгружена!');
       Caption := 'Кофигурация успешно выгружена!';
       AddLog(LogFile, Caption);
-      DeleteOld(IncludeTrailingBackslash(ExpandFileName(LabeledEdit1.Text)), '*.cf', SpinEdit1.Value);
+      DeleteOld(IncludeTrailingBackslash(ExpandFileName(bakpath_edit.Text)), '*.cf', bakcount_edit.Value);
     end;
 
     ba_loadcfg:
@@ -485,7 +456,7 @@ begin
           raise Exception.Create(Caption + ' завершено с ошибкой!');
         Caption := Caption + ' успешно завершено!';
         AddLog(LogFile, Caption);
-        DeleteOld(IncludeTrailingBackslash(ExpandFileName(LabeledEdit1.Text)), '*.lgd', SpinEdit1.Value);
+        DeleteOld(IncludeTrailingBackslash(ExpandFileName(bakpath_edit.Text)), '*.lgd', bakcount_edit.Value);
       end;
     end;
 
@@ -513,18 +484,17 @@ end;
 
 procedure TForm1.SetComponentsEnabled(State: boolean);
 begin
-  LabeledEdit1.Enabled := State;
-  LabeledEdit2.Enabled := State;
-  LabeledEdit3.Enabled := State;
-  LabeledEdit4.Enabled := State;
-  LabeledEdit5.Enabled := State;
+  bakpath_edit.Enabled := State;
+  basepath_edit.Enabled := State;
+  executable_edit.Enabled := State;
+  user_edit.Enabled := State;
+  pass_edit.Enabled := State;
   BitBtn1.Enabled := State;
   BitBtn2.Enabled := State;
   BitBtn3.Enabled := State;
-  ListBox1.Enabled := State;
-  ListBox2.Enabled := State;
-  SpinEdit1.Enabled := State;
-  SpinEdit2.Enabled := State;
+  macro_list.Enabled := State;
+  bakcount_edit.Enabled := State;
+  pagesize_edit.Enabled := State;
 end;
 
 function TForm1.runEnterprise(): boolean;
@@ -535,9 +505,9 @@ begin
     Add('ENTERPRISE');
     Add('/DisableStartupMessages');
     Add('/DisableSplash');
-    Add('/F"' + UTF8ToWinCP(LabeledEdit2.Text) + '"');
-    Add('/N"' + UTF8ToWinCP(LabeledEdit4.Text) + '"');
-    Add('/P"' + UTF8ToWinCP(LabeledEdit5.Text) + '"');
+    Add('/F"' + UTF8ToWinCP(basepath_edit.Text) + '"');
+    Add('/N"' + UTF8ToWinCP(user_edit.Text) + '"');
+    Add('/P"' + UTF8ToWinCP(pass_edit.Text) + '"');
     Add('/Out "' + UTF8ToWinCP(LogFile) + '" -NoTruncate');
   end;
   Process1.Execute;
@@ -553,9 +523,9 @@ begin
     Add('DESIGNER');
     Add('/DisableStartupMessages');
     Add('/DisableSplash');
-    Add('/F"' + Utf8ToWinCP(LabeledEdit2.Text) + '"');
-    Add('/N"' + Utf8ToWinCP(LabeledEdit4.Text) + '"');
-    Add('/P"' + Utf8ToWinCP(LabeledEdit5.Text) + '"');
+    Add('/F"' + Utf8ToWinCP(basepath_edit.Text) + '"');
+    Add('/N"' + Utf8ToWinCP(user_edit.Text) + '"');
+    Add('/P"' + Utf8ToWinCP(pass_edit.Text) + '"');
     Add('/Out "' + Utf8ToWinCP(LogFile) + '" -NoTruncate');
   end;
   Process1.Execute;
@@ -572,9 +542,9 @@ begin
     Add('/DisableStartupMessages');
     Add('/DisableStartupDialogs');
     Add('/DisableSplash');
-    Add('/F"' + Utf8ToWinCP(LabeledEdit2.Text) + '"');
-    Add('/N"' + Utf8ToWinCP(LabeledEdit4.Text) + '"');
-    Add('/P"' + Utf8ToWinCP(LabeledEdit5.Text) + '"');
+    Add('/F"' + Utf8ToWinCP(basepath_edit.Text) + '"');
+    Add('/N"' + Utf8ToWinCP(user_edit.Text) + '"');
+    Add('/P"' + Utf8ToWinCP(pass_edit.Text) + '"');
     Add('/IBRestoreIntegrity');
     Add('/Out "' + Utf8ToWinCP(LogFile) + '" -NoTruncate');
   end;
@@ -591,9 +561,9 @@ begin
     Add('/DisableStartupMessages');
     Add('/DisableStartupDialogs');
     Add('/DisableSplash');
-    Add('/F"' + Utf8ToWinCP(LabeledEdit2.Text) + '"');
-    Add('/N"' + Utf8ToWinCP(LabeledEdit4.Text) + '"');
-    Add('/P"' + Utf8ToWinCP(LabeledEdit5.Text) + '"');
+    Add('/F"' + Utf8ToWinCP(basepath_edit.Text) + '"');
+    Add('/N"' + Utf8ToWinCP(user_edit.Text) + '"');
+    Add('/P"' + Utf8ToWinCP(pass_edit.Text) + '"');
     Add('/RestoreIB"' + Utf8ToWinCP(filename) + '"');
     Add('/Out "' + Utf8ToWinCP(LogFile) + '" -NoTruncate');
   end;
@@ -607,7 +577,7 @@ var
   fn: string;
 
 begin
-  fn := IncludeTrailingBackslash(ExpandFileName(LabeledEdit1.Text)) + FormatDateTime('dd.mm.yyyy_hh.nn.ss', Now()) + '.dt';
+  fn := IncludeTrailingBackslash(ExpandFileName(bakpath_edit.Text)) + FormatDateTime('dd.mm.yyyy_hh.nn.ss', Now()) + '.dt';
   ForceDirectories(ExtractFileDir(fn));
   AddLog(LogFile, fn);
 
@@ -618,9 +588,9 @@ begin
     Add('/DisableStartupMessages');
     Add('/DisableStartupDialogs');
     Add('/DisableSplash');
-    Add('/F"' + Utf8ToWinCP(LabeledEdit2.Text) + '"');
-    Add('/N"' + Utf8ToWinCP(LabeledEdit4.Text) + '"');
-    Add('/P"' + Utf8ToWinCP(LabeledEdit5.Text) + '"');
+    Add('/F"' + Utf8ToWinCP(basepath_edit.Text) + '"');
+    Add('/N"' + Utf8ToWinCP(user_edit.Text) + '"');
+    Add('/P"' + Utf8ToWinCP(pass_edit.Text) + '"');
     Add('/DumpIB"' + Utf8ToWinCP(fn) + '"');
     Add('/Out "' + Utf8ToWinCP(LogFile) + '" -NoTruncate');
   end;
@@ -637,9 +607,9 @@ begin
     Add('/DisableStartupMessages');
     Add('/DisableStartupDialogs');
     Add('/DisableSplash');
-    Add('/F"' + Utf8ToWinCP(LabeledEdit2.Text) + '"');
-    Add('/N"' + Utf8ToWinCP(LabeledEdit4.Text) + '"');
-    Add('/P"' + Utf8ToWinCP(LabeledEdit5.Text) + '"');
+    Add('/F"' + Utf8ToWinCP(basepath_edit.Text) + '"');
+    Add('/N"' + Utf8ToWinCP(user_edit.Text) + '"');
+    Add('/P"' + Utf8ToWinCP(pass_edit.Text) + '"');
     Add('/LoadCfg"' + Utf8ToWinCP(filename) + '"');
     if ExtractFileExt(filename) = '.cfe' then
       Add('-Extension"' + Utf8ToWinCP(StringReplace(ExtractFileName(filename), '.cfe', '', [rfReplaceAll, rfIgnoreCase])) + '"');
@@ -655,7 +625,7 @@ function TForm1.dumpCFG(): boolean;
 var
   fn: string;
 begin
-  fn := IncludeTrailingBackslash(ExpandFileName(LabeledEdit1.Text)) + FormatDateTime('dd.mm.yyyy_hh.nn.ss', Now()) + '.cf';
+  fn := IncludeTrailingBackslash(ExpandFileName(bakpath_edit.Text)) + FormatDateTime('dd.mm.yyyy_hh.nn.ss', Now()) + '.cf';
   AddLog(LogFile, fn);
   with Process1.Parameters do
   begin
@@ -664,9 +634,9 @@ begin
     Add('/DisableStartupMessages');
     Add('/DisableStartupDialogs');
     Add('/DisableSplash');
-    Add('/F"' + Utf8ToWinCP(LabeledEdit2.Text) + '"');
-    Add('/N"' + Utf8ToWinCP(LabeledEdit4.Text) + '"');
-    Add('/P"' + Utf8ToWinCP(LabeledEdit5.Text) + '"');
+    Add('/F"' + Utf8ToWinCP(basepath_edit.Text) + '"');
+    Add('/N"' + Utf8ToWinCP(user_edit.Text) + '"');
+    Add('/P"' + Utf8ToWinCP(pass_edit.Text) + '"');
     Add('/DumpCfg"' + Utf8ToWinCP(fn) + '"');
     Add('/Out "' + Utf8ToWinCP(LogFile) + '" -NoTruncate');
   end;
@@ -678,7 +648,7 @@ function TForm1.ReduceEventLogSize(date: string): boolean;
 var
   fn: string;
 begin
-  fn := IncludeTrailingBackslash(ExpandFileName(LabeledEdit1.Text)) + date + '.lgd';
+  fn := IncludeTrailingBackslash(ExpandFileName(bakpath_edit.Text)) + date + '.lgd';
   AddLog(LogFile, 'Backup: "' + fn + '"');
   with Process1.Parameters do
   begin
@@ -687,9 +657,9 @@ begin
     Add('/DisableStartupMessages');
     Add('/DisableStartupDialogs');
     Add('/DisableSplash');
-    Add('/F"' + Utf8ToWinCP(LabeledEdit2.Text) + '"');
-    Add('/N"' + Utf8ToWinCP(LabeledEdit4.Text) + '"');
-    Add('/P"' + Utf8ToWinCP(LabeledEdit5.Text) + '"');
+    Add('/F"' + Utf8ToWinCP(basepath_edit.Text) + '"');
+    Add('/N"' + Utf8ToWinCP(user_edit.Text) + '"');
+    Add('/P"' + Utf8ToWinCP(pass_edit.Text) + '"');
     Add('/ReduceEventLogSize ' + date);
     Add('-saveAs"' + Utf8ToWinCP(fn) + '"');
     Add('/Out "' + Utf8ToWinCP(LogFile) + '" -NoTruncate');
@@ -706,7 +676,7 @@ begin
     with SomeProc.Parameters do
     begin
       Clear();
-      Add(Utf8ToWinCP(IncludeTrailingBackslash(LabeledEdit2.Text) + '1Cv8Log\1Cv8.lgd'));
+      Add(Utf8ToWinCP(IncludeTrailingBackslash(basepath_edit.Text) + '1Cv8Log\1Cv8.lgd'));
       Add('vacuum');
     end;
     SomeProc.Execute;
@@ -719,7 +689,7 @@ end;
 
 function TForm1.CheckPhysicalIntegrity(): boolean;
 begin
-  SomeProc.CurrentDirectory := ExtractFilePath(LabeledEdit3.Text);
+  SomeProc.CurrentDirectory := ExtractFilePath(executable_edit.Text);
   SomeProc.Executable := IncludeTrailingBackslash(SomeProc.CurrentDirectory) + 'chdbfl.exe';
   if FileExists(SomeProc.Executable) then
   begin
@@ -736,8 +706,8 @@ function TForm1.ConvertFileBase(): boolean;
 var
   base_file: string;
 begin
-  base_file := IncludeTrailingBackslash(LabeledEdit2.Text) + '1Cv8.1CD';
-  SomeProc.CurrentDirectory := ExtractFilePath(LabeledEdit3.Text);
+  base_file := IncludeTrailingBackslash(basepath_edit.Text) + '1Cv8.1CD';
+  SomeProc.CurrentDirectory := ExtractFilePath(executable_edit.Text);
   SomeProc.Executable := IncludeTrailingBackslash(SomeProc.CurrentDirectory) + 'cnvdbfl.exe';
   if FileExists(SomeProc.Executable) then
   begin
@@ -748,7 +718,7 @@ begin
       Clear();
       Add('--convert');
       Add('--format=8.3.8');
-      Add('--page=' + IntToStr(SpinEdit2.Value) + 'k');
+      Add('--page=' + IntToStr(pagesize_edit.Value) + 'k');
       Add(Utf8ToWinCP(base_file));
     end;
     SomeProc.Execute;
@@ -771,9 +741,9 @@ begin
     Add('/DisableStartupMessages');
     Add('/DisableStartupDialogs');
     Add('/DisableSplash');
-    Add('/F"' + Utf8ToWinCP(LabeledEdit2.Text) + '"');
-    Add('/N"' + Utf8ToWinCP(LabeledEdit4.Text) + '"');
-    Add('/P"' + Utf8ToWinCP(LabeledEdit5.Text) + '"');
+    Add('/F"' + Utf8ToWinCP(basepath_edit.Text) + '"');
+    Add('/N"' + Utf8ToWinCP(user_edit.Text) + '"');
+    Add('/P"' + Utf8ToWinCP(pass_edit.Text) + '"');
     Add('/IBCheckAndRepair');
     for i := 0 to length(params) - 1 do
       case params[i] of
@@ -799,9 +769,9 @@ begin
     Add('/DisableStartupMessages');
     Add('/DisableStartupDialogs');
     Add('/DisableSplash');
-    Add('/F"' + Utf8ToWinCP(LabeledEdit2.Text) + '"');
-    Add('/N"' + Utf8ToWinCP(LabeledEdit4.Text) + '"');
-    Add('/P"' + Utf8ToWinCP(LabeledEdit5.Text) + '"');
+    Add('/F"' + Utf8ToWinCP(basepath_edit.Text) + '"');
+    Add('/N"' + Utf8ToWinCP(user_edit.Text) + '"');
+    Add('/P"' + Utf8ToWinCP(pass_edit.Text) + '"');
     Add('/UpdateCfg"' + Utf8ToWinCP(filename) + '"');
     if updateCfg then
       Add('/UpdateDBCfg');
@@ -834,10 +804,10 @@ end;
 
 procedure TForm1.BitBtn3Click(Sender: TObject);
 begin
-  SelectDirectoryDialog1.InitialDir := LabeledEdit1.Text;
+  SelectDirectoryDialog1.InitialDir := bakpath_edit.Text;
   if SelectDirectoryDialog1.Execute then
   begin
-    LabeledEdit1.Text := SelectDirectoryDialog1.FileName;
+    bakpath_edit.Text := SelectDirectoryDialog1.FileName;
   end;
 end;
 
@@ -845,20 +815,18 @@ procedure TForm1.SaveSettings();
 var
   i: integer;
 begin
-  ini.WriteString(SectionMain, KeyExecutable, LabeledEdit3.Text);
-  ini.WriteString(SectionBase, KeyBakcupPath, LabeledEdit1.Text);
-  ini.WriteString(SectionBase, KeyPath, LabeledEdit2.Text);
-  ini.WriteString(SectionBase, KeyUser, LabeledEdit4.Text);
-  ini.WriteString(SectionBase, KeyPass, EncodeStringBase64(LabeledEdit5.Text));
-  ini.WriteInteger(SectionBase, KeyBackupCount, SpinEdit1.Value);
-  ini.WriteInteger(SectionBase, KeyPageSize, SpinEdit2.Value);
+  ini.WriteString(SectionMain, KeyExecutable, executable_edit.Text);
+  ini.WriteString(SectionBase, KeyBakcupPath, bakpath_edit.Text);
+  ini.WriteString(SectionBase, KeyPath, basepath_edit.Text);
+  ini.WriteString(SectionBase, KeyUser, user_edit.Text);
+  ini.WriteString(SectionBase, KeyPass, EncodeStringBase64(pass_edit.Text));
+  ini.WriteInteger(SectionBase, KeyBackupCount, bakcount_edit.Value);
+  ini.WriteInteger(SectionBase, KeyPageSize, pagesize_edit.Value);
   ini.EraseSection(SectionUpdates);
-  for i := 0 to ListBox1.Count - 1 do
-    ini.WriteString(SectionUpdates, IntToStr(i), ListBox1.Items[i]);
   ini.EraseSection(SectionMacro);
-  for i := 0 to ListBox2.Count - 1 do
-    ini.WriteString(SectionMacro, Format('%d_%d', [i, Ord(TBaseAction(PtrInt(ListBox2.Items.Objects[i])))]),
-      ListBox2.Items[i]);
+  for i := 0 to macro_list.Count - 1 do
+    ini.WriteString(SectionMacro, Format('%d_%d', [i, Ord(TBaseAction(PtrInt(macro_list.Items.Objects[i])))]),
+      macro_list.Items[i]);
 end;
 
 procedure TForm1.FormClose(Sender: TObject; var CloseAction: TCloseAction);
@@ -895,7 +863,8 @@ end;
 procedure TForm1.FormCreate(Sender: TObject);
 var
   list: TStrings;
-  i: integer;
+  i, k: integer;
+  mi: TMenuItem;
 begin
   Application.OnException := @CustomExceptionHandler;
 
@@ -913,31 +882,41 @@ begin
   end;
   StatusBar1.SimpleText := AnsiToUtf8(iniPath);
   ini := TIniFile.Create(iniPath);
-  LabeledEdit3.Text := ini.ReadString(SectionMain, KeyExecutable, '');
-  LogFile := ini.ReadString(SectionMain, KeyLogFile, 'logs\' + ChangeFileExt(ExtractFileName(iniPath), '.log'));
-  LabeledEdit1.Text := ini.ReadString(SectionBase, KeyBakcupPath, '');
-  SpinEdit1.Value := ini.ReadInteger(SectionBase, KeyBackupCount, 3);
-  SpinEdit2.Value := ini.ReadInteger(SectionBase, KeyPageSize, 8);
-  LabeledEdit2.Text := ini.ReadString(SectionBase, KeyPath, '');
-  LabeledEdit4.Text := ini.ReadString(SectionBase, KeyUser, '');
+  executable_edit.Text := ini.ReadString(SectionMain, KeyExecutable, '');
+  LogFile := ini.ReadString(SectionMain, KeyLogFile, IncludeTrailingPathDelimiter('logs') +
+    ChangeFileExt(ExtractFileName(iniPath), '.log'));
+  bakpath_edit.Text := ini.ReadString(SectionBase, KeyBakcupPath, '');
+  bakcount_edit.Value := ini.ReadInteger(SectionBase, KeyBackupCount, 3);
+  pagesize_edit.Value := ini.ReadInteger(SectionBase, KeyPageSize, 8);
+  basepath_edit.Text := ini.ReadString(SectionBase, KeyPath, '');
+  user_edit.Text := ini.ReadString(SectionBase, KeyUser, '');
   try
-    LabeledEdit5.Text := DecodeStringBase64(ini.ReadString(SectionBase, KeyPass, ''));
+    pass_edit.Text := DecodeStringBase64(ini.ReadString(SectionBase, KeyPass, ''));
   except
   end;
   list := TStringList.Create;
-  try
-    ini.ReadSectionValues(SectionUpdates, list);
-    for i := 0 to list.Count - 1 do
-      ListBox1.Items.Add(list.ValueFromIndex[i]);
-  finally
-    list.Clear;
-  end;
+
   try
     ini.ReadSectionValues(SectionMacro, list);
     for i := 0 to list.Count - 1 do
-      ListBox2.AddItem(list.ValueFromIndex[i], TObject(PtrInt(TBaseAction(StrToInt(list.Names[i].Split('_')[1])))));
+      macro_list.AddItem(list.ValueFromIndex[i], TObject(PtrInt(TBaseAction(StrToInt(list.Names[i].Split('_')[1])))));
   finally
     list.Free;
+  end;
+  for i := 0 to commands_menu.Count - 1 do
+  begin
+    mi := TMenuItem.Create(nil);
+    mi.Caption := commands_menu.Items[i].Caption;
+    mi.OnClick := commands_menu.Items[i].OnClick;
+    mi.Tag := 1;
+    PopupMenu2.Items[0].Add(mi);
+    //for k:=0 to  commands_menu.Items[i].Count do
+    //begin
+    //  mi.Add();
+    //mi.Caption:=commands_menu.Items[i].Caption;
+    //mi.OnClick:=commands_menu.Items[i].OnClick;
+    //PopupMenu2.Items[0].Add(mi);
+    //end;
   end;
   AddLog(LogFile, ExtractFileName(ParamStr(0)) + ' started!');
   if run_non_interactive then
@@ -947,256 +926,124 @@ begin
   end;
 end;
 
-procedure TForm1.FormShow(Sender: TObject);
-begin
-end;
-
-procedure TForm1.LabeledEdit3Change(Sender: TObject);
+procedure TForm1.executable_editChange(Sender: TObject);
 begin
   if not Process1.Running then
-    Process1.Executable := LabeledEdit3.Text;
+    Process1.Executable := executable_edit.Text;
 end;
+
 
 
 procedure TForm1.BitBtn1Click(Sender: TObject);
 begin
-  SelectDirectoryDialog1.InitialDir := LabeledEdit2.Text;
+  SelectDirectoryDialog1.InitialDir := basepath_edit.Text;
   if SelectDirectoryDialog1.Execute then
   begin
-    LabeledEdit2.Text := SelectDirectoryDialog1.FileName;
+    basepath_edit.Text := SelectDirectoryDialog1.FileName;
   end;
 end;
 
 
 procedure TForm1.BitBtn2Click(Sender: TObject);
 begin
-  OpenDialog1.InitialDir := ExtractFilePath(LabeledEdit3.Text);
+  OpenDialog1.InitialDir := ExtractFilePath(executable_edit.Text);
   OpenDialog1.FilterIndex := 2;
   if OpenDialog1.Execute then
   begin
-    LabeledEdit3.Text := OpenDialog1.FileName;
+    executable_edit.Text := OpenDialog1.FileName;
   end;
 end;
 
-procedure TForm1.MenuItem1Click(Sender: TObject);
-var
-  k: integer;
-begin
-  if ListBox1.Count > 0 then
-    OpenDialog1.InitialDir := ExtractFilePath(ListBox1.Items[ListBox1.Count - 1]);
-  OpenDialog1.FilterIndex := 1;
-  if (OpenDialog1.Execute) then
-  begin
-    k := ListBox1.ItemIndex;
-    if (k > -1) then
-      ListBox1.Items.Insert(k, OpenDialog1.FileName)
-    else
-      ListBox1.Items.Add(OpenDialog1.FileName);
-  end;
-end;
 
-procedure TForm1.MenuItem20Click(Sender: TObject);
-var
-  k: integer;
-begin
-  OpenDialog1.InitialDir := LabeledEdit1.Text;
-  OpenDialog1.FilterIndex := 4;
-  if OpenDialog1.Execute then
-  begin
-    k := ListBox2.ItemIndex;
-    if (k > -1) then
-      ListBox2.Items.InsertObject(k, Format('%s(%s)', [TMenuItem(Sender).Caption, OpenDialog1.FileName]), TObject(ba_restoreib))
-    else
-      ListBox2.AddItem(Format('%s(%s)', [TMenuItem(Sender).Caption, OpenDialog1.FileName]), TObject(ba_restoreib));
-  end;
-end;
-
-procedure TForm1.MenuItem21Click(Sender: TObject);
-var
-  k: integer;
-begin
-  k := ListBox2.ItemIndex;
-  if (k > -1) then
-    ListBox2.Items.InsertObject(k, TMenuItem(Sender).Caption, TObject(ba_update))
-  else
-    ListBox2.AddItem(TMenuItem(Sender).Caption, TObject(ba_update));
-end;
-
-procedure TForm1.MenuItem22Click(Sender: TObject);
-var
-  k: integer;
-  params: string;
-begin
-  params := GetIBCheckParams();
-  if not params.IsEmpty then
-  begin
-    k := ListBox2.ItemIndex;
-    if (k > -1) then
-      ListBox2.Items.InsertObject(k, Format('%s(%s)', [TMenuItem(Sender).Caption, params]), TObject(ba_check))
-    else
-      ListBox2.AddItem(Format('%s(%s)', [TMenuItem(Sender).Caption, params]), TObject(ba_check));
-  end;
-end;
-
-procedure TForm1.MenuItem24Click(Sender: TObject);
-var
-  k: integer;
-begin
-  k := ListBox2.ItemIndex;
-  if (k > -1) then
-    ListBox2.Items.InsertObject(k, TMenuItem(Sender).Caption, TObject(ba_dumpcfg))
-  else
-    ListBox2.AddItem(TMenuItem(Sender).Caption, TObject(ba_dumpcfg));
-end;
-
-procedure TForm1.MenuItem25Click(Sender: TObject);
-var
-  k: integer;
-begin
-  OpenDialog1.InitialDir := LabeledEdit1.Text;
-  OpenDialog1.FilterIndex := 3;
-  if OpenDialog1.Execute then
-  begin
-    k := ListBox2.ItemIndex;
-    if (k > -1) then
-      ListBox2.Items.InsertObject(k, Format('%s(%s)', [TMenuItem(Sender).Caption, OpenDialog1.FileName]), TObject(ba_loadcfg))
-    else
-      ListBox2.AddItem(Format('%s(%s)', [TMenuItem(Sender).Caption, OpenDialog1.FileName]), TObject(ba_loadcfg));
-  end;
-end;
-
-procedure TForm1.MenuItem27Click(Sender: TObject);
+procedure TForm1.mi_runmacroClick(Sender: TObject);
 begin
   MyThread := TMyThread.Create(ba_macro);
 end;
 
-procedure TForm1.MenuItem28Click(Sender: TObject);
+procedure TForm1.mi_del_from_macroClick(Sender: TObject);
 var
   k: integer;
 begin
-  k := ListBox2.ItemIndex;
+  k := macro_list.ItemIndex;
   if k < 0 then
     exit;
-  ListBox2.Items.Delete(k);
+  macro_list.Items.Delete(k);
 end;
 
-procedure TForm1.MenuItem29Click(Sender: TObject);
+procedure TForm1.mi_del_allClick(Sender: TObject);
 begin
-  ListBox2.Items.Clear;
+  macro_list.Items.Clear;
 end;
 
-procedure TForm1.MenuItem2Click(Sender: TObject);
-var
-  k: integer;
-begin
-  k := ListBox1.ItemIndex;
-  if k < 0 then
-    exit;
-  ListBox1.Items.Delete(k);
-end;
 
-procedure TForm1.MenuItem30Click(Sender: TObject);
-var
-  k: integer;
+
+
+procedure TForm1.mi_delcacheClick(Sender: TObject);
 begin
-  k := ListBox2.ItemIndex;
-  if (k > -1) then
-    ListBox2.Items.InsertObject(k, TMenuItem(Sender).Caption, TObject(ba_cache))
+  if (Sender as TMenuItem).Tag = 1 then
+    AddMacrosCommand(Sender, ba_cache)
   else
-    ListBox2.AddItem(TMenuItem(Sender).Caption, TObject(ba_cache));
+    MyThread := TMyThread.Create(ba_cache);
 end;
 
-procedure TForm1.MenuItem31Click(Sender: TObject);
-begin
-  MyThread := TMyThread.Create(ba_cache);
-end;
-
-procedure TForm1.MenuItem32Click(Sender: TObject);
+procedure TForm1.mi_reduce_journalClick(Sender: TObject);
 begin
   CalendarDialog1.Date := Now();
   if CalendarDialog1.Execute then
-    MyThread := TMyThread.Create(ba_journal, FormatDateTime('yyyy-mm-dd', CalendarDialog1.Date));
-end;
-
-procedure TForm1.MenuItem33Click(Sender: TObject);
-var
-  k: integer;
-begin
-  CalendarDialog1.Date := Now();
-  if CalendarDialog1.Execute then
-  begin
-    k := ListBox2.ItemIndex;
-    if (k > -1) then
-      ListBox2.Items.InsertObject(k, Format('%s(%s)', [TMenuItem(Sender).Caption,
-        FormatDateTime('yyyy-mm-dd', CalendarDialog1.Date)]), TObject(ba_journal))
+    if (Sender as TMenuItem).Tag = 1 then
+      AddMacrosCommand(Sender, ba_journal, FormatDateTime('yyyy-mm-dd', CalendarDialog1.Date))
     else
-      ListBox2.AddItem(Format('%s(%s)', [TMenuItem(Sender).Caption, FormatDateTime('yyyy-mm-dd', CalendarDialog1.Date)]),
-        TObject(ba_journal));
-  end;
+      MyThread := TMyThread.Create(ba_journal, FormatDateTime('yyyy-mm-dd', CalendarDialog1.Date));
 end;
 
-procedure TForm1.MenuItem34Click(Sender: TObject);
-begin
-  MyThread := TMyThread.Create(ba_integrity);
-end;
 
-procedure TForm1.MenuItem35Click(Sender: TObject);
-var
-  k: integer;
+
+procedure TForm1.mi_repairibClick(Sender: TObject);
 begin
-  k := ListBox2.ItemIndex;
-  if (k > -1) then
-    ListBox2.Items.InsertObject(k, TMenuItem(Sender).Caption, TObject(ba_integrity))
+  if (Sender as TMenuItem).Tag = 1 then
+    AddMacrosCommand(Sender, ba_integrity)
   else
-    ListBox2.AddItem(TMenuItem(Sender).Caption, TObject(ba_integrity));
+    MyThread := TMyThread.Create(ba_integrity);
 end;
 
-procedure TForm1.MenuItem36Click(Sender: TObject);
-begin
-  MyThread := TMyThread.Create(ba_physical);
-end;
 
-procedure TForm1.MenuItem37Click(Sender: TObject);
-var
-  k: integer;
+
+procedure TForm1.mi_repair_physicalClick(Sender: TObject);
 begin
-  k := ListBox2.ItemIndex;
-  if (k > -1) then
-    ListBox2.Items.InsertObject(k, TMenuItem(Sender).Caption, TObject(ba_physical))
+  if (Sender as TMenuItem).Tag = 1 then
+    AddMacrosCommand(Sender, ba_physical)
   else
-    ListBox2.AddItem(TMenuItem(Sender).Caption, TObject(ba_physical));
+    MyThread := TMyThread.Create(ba_physical);
 end;
 
-procedure TForm1.MenuItem38Click(Sender: TObject);
-var
-  k: integer;
+
+
+
+procedure TForm1.mi_convertClick(Sender: TObject);
 begin
-  k := ListBox2.ItemIndex;
-  if (k > -1) then
-    ListBox2.Items.InsertObject(k, TMenuItem(Sender).Caption, TObject(ba_convert))
+  if (Sender as TMenuItem).Tag = 1 then
+    AddMacrosCommand(Sender, ba_convert)
   else
-    ListBox2.AddItem(TMenuItem(Sender).Caption, TObject(ba_convert));
-end;
-
-procedure TForm1.MenuItem39Click(Sender: TObject);
-begin
-  MyThread := TMyThread.Create(ba_convert);
+    MyThread := TMyThread.Create(ba_convert);
 end;
 
 
-procedure TForm1.MenuItem5Click(Sender: TObject);
+
+
+procedure TForm1.mi_run_enterpriseClick(Sender: TObject);
 begin
-  ListBox1.Items.Clear;
+  if (Sender as TMenuItem).Tag = 1 then
+    AddMacrosCommand(Sender, ba_enterprise)
+  else
+    MyThread := TMyThread.Create(ba_enterprise);
 end;
 
-procedure TForm1.MenuItem6Click(Sender: TObject);
+procedure TForm1.mi_run_designerClick(Sender: TObject);
 begin
-  MyThread := TMyThread.Create(ba_enterprise);
-end;
-
-procedure TForm1.MenuItem7Click(Sender: TObject);
-begin
-  MyThread := TMyThread.Create(ba_config);
+  if (Sender as TMenuItem).Tag = 1 then
+    AddMacrosCommand(Sender, ba_config)
+  else
+    MyThread := TMyThread.Create(ba_config);
 end;
 
 procedure TForm1.MenuItem8Click(Sender: TObject);
@@ -1204,82 +1051,87 @@ begin
   SaveSettings();
 end;
 
-procedure TForm1.MenuItem15Click(Sender: TObject);
+procedure TForm1.mi_updatecfgClick(Sender: TObject);
 begin
-  MyThread := TMyThread.Create(ba_update);
-end;
-
-
-procedure TForm1.MenuItem17Click(Sender: TObject);
-var
-  k: integer;
-begin
-  k := ListBox2.ItemIndex;
-  if (k > -1) then
-    ListBox2.Items.InsertObject(k, TMenuItem(Sender).Caption, TObject(ba_enterprise))
+  if (Sender as TMenuItem).Tag = 1 then
+    AddMacrosCommand(Sender, ba_update)
   else
-    ListBox2.AddItem(TMenuItem(Sender).Caption, TObject(ba_enterprise));
+    MyThread := TMyThread.Create(ba_update);
 end;
 
-procedure TForm1.MenuItem18Click(Sender: TObject);
-var
-  k: integer;
+
+
+
+procedure TForm1.mi_dumpibClick(Sender: TObject);
 begin
-  k := ListBox2.ItemIndex;
-  if (k > -1) then
-    ListBox2.Items.InsertObject(k, TMenuItem(Sender).Caption, TObject(ba_config))
+  if (Sender as TMenuItem).Tag = 1 then
+    AddMacrosCommand(Sender, ba_dumpib)
   else
-    ListBox2.AddItem(TMenuItem(Sender).Caption, TObject(ba_config));
+    MyThread := TMyThread.Create(ba_dumpib);
 end;
 
-procedure TForm1.MenuItem19Click(Sender: TObject);
-var
-  k: integer;
+procedure TForm1.mi_loadibClick(Sender: TObject);
 begin
-  k := ListBox2.ItemIndex;
-  if (k > -1) then
-    ListBox2.Items.InsertObject(k, TMenuItem(Sender).Caption, TObject(ba_dumpib))
-  else
-    ListBox2.AddItem(TMenuItem(Sender).Caption, TObject(ba_dumpib));
-end;
-
-procedure TForm1.MenuItem10Click(Sender: TObject);
-begin
-  MyThread := TMyThread.Create(ba_dumpib);
-end;
-
-procedure TForm1.MenuItem11Click(Sender: TObject);
-begin
-  OpenDialog1.InitialDir := LabeledEdit1.Text;
+  OpenDialog1.InitialDir := bakpath_edit.Text;
   OpenDialog1.FilterIndex := 4;
   if OpenDialog1.Execute then
-  begin
-    MyThread := TMyThread.Create(ba_restoreib, OpenDialog1.FileName);
-  end;
+    if (Sender as TMenuItem).Tag = 1 then
+      AddMacrosCommand(Sender, ba_restoreib, OpenDialog1.FileName)
+    else
+      MyThread := TMyThread.Create(ba_restoreib, OpenDialog1.FileName);
 end;
 
-procedure TForm1.MenuItem14Click(Sender: TObject);
+procedure TForm1.mi_dumpcfgClick(Sender: TObject);
 begin
-  MyThread := TMyThread.Create(ba_dumpcfg);
+  if (Sender as TMenuItem).Tag = 1 then
+    AddMacrosCommand(Sender, ba_dumpcfg)
+  else
+    MyThread := TMyThread.Create(ba_dumpcfg);
 end;
 
-procedure TForm1.MenuItem13Click(Sender: TObject);
+procedure TForm1.mi_loadcfgClick(Sender: TObject);
 begin
-  OpenDialog1.InitialDir := LabeledEdit1.Text;
+  OpenDialog1.InitialDir := bakpath_edit.Text;
   OpenDialog1.FilterIndex := 3;
   if OpenDialog1.Execute then
-  begin
-    MyThread := TMyThread.Create(ba_loadcfg, OpenDialog1.FileName);
-  end;
+    if (Sender as TMenuItem).Tag = 1 then
+      AddMacrosCommand(Sender, ba_loadcfg, OpenDialog1.FileName)
+    else
+      MyThread := TMyThread.Create(ba_loadcfg, OpenDialog1.FileName);
 end;
 
-procedure TForm1.MenuItem3Click(Sender: TObject);
+procedure TForm1.mi_testcheckClick(Sender: TObject);
 var
   params: string;
 begin
   params := GetIBCheckParams();
   if not params.IsEmpty then
-    MyThread := TMyThread.Create(ba_check, params);
+    if (Sender as TMenuItem).Tag = 1 then
+      AddMacrosCommand(Sender, ba_check, params)
+    else
+      MyThread := TMyThread.Create(ba_check, params);
+end;
+
+function TForm1.AddMacrosCommand(Sender: TObject; baseAction: TBaseAction; param: string = ''): boolean;
+var
+  k: integer;
+begin
+  k := macro_list.ItemIndex;
+  if param.IsEmpty() then
+  begin
+    if (k > -1) then
+      macro_list.Items.InsertObject(k, TMenuItem(Sender).Caption, TObject(PtrUint(baseAction)))
+    else
+      macro_list.AddItem(TMenuItem(Sender).Caption, TObject(PtrUint(baseAction)));
+  end
+  else
+  begin
+    if (k > -1) then
+      macro_list.Items.InsertObject(k, Format('%s(%s)', [TMenuItem(Sender).Caption, param]), TObject(PtrUint(baseAction)))
+    else
+      macro_list.AddItem(Format('%s(%s)', [TMenuItem(Sender).Caption, param]), TObject(PtrUint(baseAction)));
+  end;
+  Result := True;
 end;
 
 procedure TForm1.MenuItem4Click(Sender: TObject);
@@ -1288,6 +1140,8 @@ begin
     #10#13 + 'Version: ' + Version + #10#13 + 'Автор: Дмитрий Воротилин, dvor85@gmail.com',
     mtInformation, [mbOK], 0);
 end;
+
+
 
 
 
