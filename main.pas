@@ -7,7 +7,7 @@ interface
 uses
   Classes, SysUtils, process, Forms, Controls, Dialogs, ExtCtrls, StdCtrls,
   Buttons, Menus, ComCtrls, ActnList, Spin, ExtDlgs, FileUtil, IniFiles,
-  lazutf8, ShortPathEdit, LCLIntf, TypInfo, CheckAndRepairForm;
+  lazutf8, LCLIntf, TypInfo, CheckAndRepairForm;
 
 const
   Version: string = '2.2.5';
@@ -26,7 +26,7 @@ const
 
 type
 
-  TBaseAction = (ba_update, ba_dumpib, ba_restoreib, ba_dumpcfg,
+  TBaseAction = (ba_update, ba_updatecfg, ba_dumpib, ba_restoreib, ba_dumpcfg,
     ba_loadcfg, ba_check, ba_enterprise, ba_config, ba_cache, ba_journal, ba_integrity, ba_physical,
     ba_macro, ba_convert);
 
@@ -59,9 +59,11 @@ type
     bakpath_edit: TLabeledEdit;
     basepath_edit: TLabeledEdit;
     executable_edit: TLabeledEdit;
+    MenuItem1: TMenuItem;
+    mi_update_cfg: TMenuItem;
     user_edit: TLabeledEdit;
     pass_edit: TLabeledEdit;
-    macro_list: TListBox;
+    macros_list: TListBox;
     MainMenu1: TMainMenu;
     MenuItem26: TMenuItem;
     mi_runmacro: TMenuItem;
@@ -75,14 +77,14 @@ type
     mi_save_config: TMenuItem;
     mi_reload_config: TMenuItem;
     mi_add_to_macro: TMenuItem;
-    PopupMenu2: TPopupMenu;
+    macros_menu: TPopupMenu;
     logs_memo: TMemo;
     mi_dumpib: TMenuItem;
     mi_loadib: TMenuItem;
     MenuItem12: TMenuItem;
     mi_loadcfg: TMenuItem;
     mi_dumpcfg: TMenuItem;
-    mi_updatecfg: TMenuItem;
+    mi_update: TMenuItem;
     MenuItem16: TMenuItem;
     mi_testcheck: TMenuItem;
     MenuItem4: TMenuItem;
@@ -107,11 +109,14 @@ type
     procedure FormCloseQuery(Sender: TObject; var CanClose: boolean);
     procedure FormCreate(Sender: TObject);
     procedure executable_editChange(Sender: TObject);
+    procedure macros_listDragDrop(Sender, Source: TObject; X, Y: integer);
+    procedure macros_listDragOver(Sender, Source: TObject; X, Y: integer; State: TDragState; var Accept: boolean);
     procedure mi_dumpibClick(Sender: TObject);
     procedure mi_loadibClick(Sender: TObject);
     procedure mi_loadcfgClick(Sender: TObject);
     procedure mi_dumpcfgClick(Sender: TObject);
-    procedure mi_updatecfgClick(Sender: TObject);
+    procedure mi_reload_configClick(Sender: TObject);
+    procedure mi_updateClick(Sender: TObject);
 
     procedure mi_runmacroClick(Sender: TObject);
     procedure mi_del_from_macroClick(Sender: TObject);
@@ -126,7 +131,8 @@ type
     procedure MenuItem4Click(Sender: TObject);
     procedure mi_run_enterpriseClick(Sender: TObject);
     procedure mi_run_designerClick(Sender: TObject);
-    procedure MenuItem8Click(Sender: TObject);
+    procedure mi_save_configClick(Sender: TObject);
+    procedure mi_update_cfgClick(Sender: TObject);
 
   private
     { private declarations }
@@ -134,21 +140,14 @@ type
     LogFile: string;
     iniPath: string;
     ini: TIniFile;
-    currentTask, progress: integer;
+    progress: integer;
+    procedure populateMacrosMenu(src, dst: TMenuItem);
     function GetIBCheckParams(): string;
     procedure ExecuteBaseAction(baseAction: TBaseAction; param: string);
-    procedure SaveSettings();
     procedure SetComponentsEnabled(State: boolean);
     procedure CustomExceptionHandler(Sender: TObject; E: Exception);
-    function runEnterprise(): boolean;
-    function runConfig(): boolean;
-    function dumpIB(): boolean;
-    function restoreIB(filename: string): boolean;
-    function dumpCFG(): boolean;
-    function loadCFG(filename: string; updateCfg: boolean = True): boolean;
-    function CheckAndRepair(param: string): boolean;
-    function updateBase(filename: string; updateCfg: boolean = False): boolean;
-    function IBRestoreIntegrity(): boolean;
+    function run_1c(mode: string; params: array of string): boolean;
+
     function ClearCache(): boolean;
     function ReduceEventLogSize(date: string): boolean;
     function CheckPhysicalIntegrity(): boolean;
@@ -261,7 +260,7 @@ var
   msg, param: string;
   params: TStringArray;
 begin
-  Form1.SetComponentsEnabled(False);
+  //Form1.SetComponentsEnabled(False);
   Form1.progress := 0;
   try
     try
@@ -272,33 +271,8 @@ begin
 
         if (Process1.Executable = '') or (basepath_edit.Text = '') then
           raise Exception.Create('Не заполнены необходимые поля!');
-        if (FBaseAction = ba_macro) then
-        begin
-          currentTask := 0;
-          totalTasks := macro_list.Count + macro_list.Count;
-          if (macro_list.Count < 1) then
-            raise Exception.Create('Действия для макроса не заполнены!');
-
-          for i := 0 to macro_list.Count - 1 do
-          begin
-            params := macro_list.Items[i].Split(['(', ')']);
-            param := '';
-            if length(params) > 1 then
-              param := params[1];
-            macro_list.ClearSelection;
-            macro_list.Selected[i] := True;
-            ExecuteBaseAction(TbaseAction(PtrInt(macro_list.Items.Objects[i])), param);
-            Inc(currentTask);
-            progress := currentTask * 100 div totalTasks;
-          end;
-          macro_list.ClearSelection;
-          Caption := 'Выполнение макроса успешно завершено!';
-          AddLog(LogFile, Caption);
-        end
-        else
-          ExecuteBaseAction(FBaseAction, FParam);
+        ExecuteBaseAction(FBaseAction, FParam);
       end;
-      //MessageDlg(Form1.Caption, mtInformation, [mbOK], 0);
     except
       on e: Exception do
       begin
@@ -310,7 +284,7 @@ begin
       end;
     end;
   finally
-    Form1.SetComponentsEnabled(True);
+    //Form1.SetComponentsEnabled(True);
     self.Terminate;
   end;
 end;
@@ -318,40 +292,65 @@ end;
 
 procedure TForm1.ExecuteBaseAction(baseAction: TBaseAction; param: string);
 var
-  i: integer;
+  i, _action: integer;
+  _param, fn: string;
+  _params: TStringArray;
 begin
   case baseAction of
+    ba_macro:
+    begin
+      for i := 0 to macros_list.Count - 1 do
+      begin
+        _params := macros_list.Items[i].Split(['(', ')']);
+        _param := '';
+        if length(_params) > 1 then
+          _param := _params[1];
+        _action := PtrInt(macros_list.Items.Objects[i]);
+        ExecuteBaseAction(TbaseAction(_action), _param);
+      end;
+      Caption := 'Выполнение макроса успешно завершено!';
+      AddLog(LogFile, Caption);
+    end;
+
     ba_update:
     begin
-      for i := 0 to macro_list.Count - 1 do
-      begin
-        macro_list.ClearSelection;
-        macro_list.Selected[i] := True;
-        Caption := 'Установка обновления';
-        AddLog(LogFile, Format('%s: "%s"', [Caption, macro_list.Items[i]]));
-        if not updateBase(macro_list.Items[i], (i = macro_list.Count - 1)) then
-          raise Exception.Create('Ошибка обновления!');
-        Inc(currentTask);
-      end;
-      macro_list.ClearSelection;
+      Caption := 'Установка обновления';
+      AddLog(LogFile, Format('%s: "%s"', [Caption, param]));
+
+      if not run_1c('DESIGNER', ['/UpdateCfg']) then
+        raise Exception.Create('Ошибка обновления!');
+      macros_list.ClearSelection;
+    end;
+
+    ba_updatecfg:
+    begin
+      Caption := 'Обновление конфигурации';
+      AddLog(LogFile, Caption);
+      if not run_1c('DESIGNER', ['/UpdateDBCfg']) then
+        raise Exception.Create(Caption + ' не выполнена!');
+      Caption := 'Выполнение макроса успешно завершено!';
+      AddLog(LogFile, Caption);
     end;
 
     ba_dumpib:
     begin
       Caption := 'Выгрузка информационной базы';
-      AddLog(LogFile, Caption);
-      if not dumpIB() then
+      fn := IncludeTrailingPathDelimiter(ExpandFileName(bakpath_edit.Text)) +
+        FormatDateTime('dd.mm.yyyy_hh.nn.ss', Now()) + '.dt';
+      AddLog(LogFile, Format('%s: "%s"', [Caption, fn]));
+      ForceDirectories(ExtractFileDir(fn));
+      if not run_1c('DESIGNER', ['/DumpIB', UTF8ToWinCP(fn)]) then
         raise Exception.Create(Caption + ' не выполнена!');
       Caption := Caption + ' завершена!';
       AddLog(LogFile, Caption);
-      DeleteOld(IncludeTrailingBackslash(ExpandFileName(bakpath_edit.Text)), '*.dt', bakcount_edit.Value);
+      DeleteOld(IncludeTrailingPathDelimiter(ExpandFileName(bakpath_edit.Text)), '*.dt', bakcount_edit.Value);
     end;
 
     ba_restoreib:
     begin
       Caption := 'Загрузка информационной базы';
       AddLog(LogFile, Format('%s "%s"', [Caption, param]));
-      if (param = '') or (not restoreIB(param)) then
+      if (param = '') or (not run_1c('DESIGNER', ['/DumpIB', UTF8ToWinCP(param)])) then
         raise Exception.Create(Caption + ' завершена с ошибкой!');
       Caption := Caption + ' успешно завершено!';
       AddLog(LogFile, Caption);
@@ -360,22 +359,32 @@ begin
     ba_dumpcfg:
     begin
       Caption := 'Выгрузка конфигурации';
-      AddLog(LogFile, Caption);
-      if not dumpCFG() then
+      fn := IncludeTrailingPathDelimiter(ExpandFileName(bakpath_edit.Text)) +
+        FormatDateTime('dd.mm.yyyy_hh.nn.ss', Now()) + '.cf';
+      AddLog(LogFile, Format('%s: "%s"', [Caption, fn]));
+      ForceDirectories(ExtractFileDir(fn));
+      if not run_1c('DESIGNER', ['/DumpCFG', UTF8ToWinCP(fn)]) then
         raise Exception.Create('Кофигурация не выгружена!');
       Caption := 'Кофигурация успешно выгружена!';
       AddLog(LogFile, Caption);
-      DeleteOld(IncludeTrailingBackslash(ExpandFileName(bakpath_edit.Text)), '*.cf', bakcount_edit.Value);
+      DeleteOld(IncludeTrailingPathDelimiter(ExpandFileName(bakpath_edit.Text)), '*.cf', bakcount_edit.Value);
     end;
 
     ba_loadcfg:
     begin
       Caption := 'Загрузка конфигурации';
       AddLog(LogFile, Format('%s "%s"', [Caption, param]));
+      setlength(_params, 0);
+      SetLength(_params, 3);
       if ExtractFileExt(param) = '.cfe' then
+      begin
         Caption := 'Загрузка расширения';
-      AddLog(LogFile, Format('%s "%s"', [Caption, param]));
-      if (param = '') or (not loadCFG(param)) then
+        _params[0] := '-Extension"' + Utf8ToWinCP(StringReplace(ExtractFileName(param), '.cfe', '',
+          [rfReplaceAll, rfIgnoreCase])) + '"';
+      end;
+      _params[1] := '/LoadCFG';
+      _params[2] := UTF8ToWinCP(param);
+      if (param = '') or (not run_1c('DESIGNER', _params)) then
         raise Exception.Create('Ошибка ' + Caption + '!');
       Caption := Caption + ' успешно завершено!';
       AddLog(LogFile, Caption);
@@ -385,7 +394,19 @@ begin
     begin
       Caption := 'Тестирование и исправление базы';
       AddLog(LogFile, Caption);
-      if not CheckAndRepair(param) then
+      _params := param.Split([',']);
+      for i := 0 to length(_params) - 1 do
+        case _params[i] of
+          '0': _params[i] := '-ReIndex';
+          '1': _params[i] := '-LogIntegrity';
+          '2': _params[i] := '-LogAndRefsIntegrity';
+          '3': _params[i] := '-RecalcTotals';
+          '4': _params[i] := '-IBCompression';
+          '5': _params[i] := '-Rebuild';
+        end;
+      setlength(_params, length(_params) + 1);
+      _params[length(_params)] := '/IBCheckAndRepair';
+      if not run_1c('DESIGNER', _params) then
         raise Exception.Create(Caption + ' завершено с ошибкой!');
       Caption := Caption + ' успешно завершено!';
       AddLog(LogFile, Caption);
@@ -395,7 +416,7 @@ begin
     begin
       Caption := 'Запуск в режиме ENTERPRISE';
       AddLog(LogFile, Caption);
-      if not runEnterprise() then
+      if not run_1c('ENTERPRISE', []) then
         raise Exception.Create(Caption + ' завершен с ошибкой!');
       Caption := Caption + ' успешно завершен!';
       AddLog(LogFile, Caption);
@@ -405,7 +426,7 @@ begin
     begin
       Caption := 'Запуск в режиме конфигуратора';
       AddLog(LogFile, Caption);
-      if not runConfig() then
+      if not run_1c('DESIGNER', []) then
         raise Exception.Create(Caption + ' завершен с ошибкой!');
       Caption := Caption + ' успешно завершен!';
       AddLog(LogFile, Caption);
@@ -414,7 +435,7 @@ begin
     begin
       Caption := 'Восстановление структуры информационной базы';
       AddLog(LogFile, Caption);
-      if not IBRestoreIntegrity() then
+      if not run_1c('DESIGNER', ['/IBRestoreIntegrity']) then
         raise Exception.Create(Caption + ' завершено с ошибкой!');
       Caption := Caption + ' успешно завершено!';
       AddLog(LogFile, Caption);
@@ -456,7 +477,7 @@ begin
           raise Exception.Create(Caption + ' завершено с ошибкой!');
         Caption := Caption + ' успешно завершено!';
         AddLog(LogFile, Caption);
-        DeleteOld(IncludeTrailingBackslash(ExpandFileName(bakpath_edit.Text)), '*.lgd', bakcount_edit.Value);
+        DeleteOld(IncludeTrailingPathDelimiter(ExpandFileName(bakpath_edit.Text)), '*.lgd', bakcount_edit.Value);
       end;
     end;
 
@@ -492,19 +513,20 @@ begin
   BitBtn1.Enabled := State;
   BitBtn2.Enabled := State;
   BitBtn3.Enabled := State;
-  macro_list.Enabled := State;
+  macros_list.Enabled := State;
   bakcount_edit.Enabled := State;
   pagesize_edit.Enabled := State;
 end;
 
-function TForm1.runEnterprise(): boolean;
+function TForm1.run_1c(mode: string; params: array of string): boolean;
 begin
   with Process1.Parameters do
   begin
     Clear();
-    Add('ENTERPRISE');
+    Add(mode);
     Add('/DisableStartupMessages');
     Add('/DisableSplash');
+    AddStrings(params);
     Add('/F"' + UTF8ToWinCP(basepath_edit.Text) + '"');
     Add('/N"' + UTF8ToWinCP(user_edit.Text) + '"');
     Add('/P"' + UTF8ToWinCP(pass_edit.Text) + '"');
@@ -514,161 +536,23 @@ begin
   Result := Process1.ExitStatus = 0;
 end;
 
-function TForm1.runConfig(): boolean;
-begin
-
-  with Process1.Parameters do
-  begin
-    Clear();
-    Add('DESIGNER');
-    Add('/DisableStartupMessages');
-    Add('/DisableSplash');
-    Add('/F"' + Utf8ToWinCP(basepath_edit.Text) + '"');
-    Add('/N"' + Utf8ToWinCP(user_edit.Text) + '"');
-    Add('/P"' + Utf8ToWinCP(pass_edit.Text) + '"');
-    Add('/Out "' + Utf8ToWinCP(LogFile) + '" -NoTruncate');
-  end;
-  Process1.Execute;
-  Result := Process1.ExitStatus = 0;
-
-end;
-
-function TForm1.IBRestoreIntegrity(): boolean;
-begin
-  with Process1.Parameters do
-  begin
-    Clear();
-    Add('DESIGNER');
-    Add('/DisableStartupMessages');
-    Add('/DisableStartupDialogs');
-    Add('/DisableSplash');
-    Add('/F"' + Utf8ToWinCP(basepath_edit.Text) + '"');
-    Add('/N"' + Utf8ToWinCP(user_edit.Text) + '"');
-    Add('/P"' + Utf8ToWinCP(pass_edit.Text) + '"');
-    Add('/IBRestoreIntegrity');
-    Add('/Out "' + Utf8ToWinCP(LogFile) + '" -NoTruncate');
-  end;
-  Process1.Execute;
-  Result := Process1.ExitStatus = 0;
-end;
-
-function TForm1.restoreIB(filename: string): boolean;
-begin
-  with Process1.Parameters do
-  begin
-    Clear();
-    Add('DESIGNER');
-    Add('/DisableStartupMessages');
-    Add('/DisableStartupDialogs');
-    Add('/DisableSplash');
-    Add('/F"' + Utf8ToWinCP(basepath_edit.Text) + '"');
-    Add('/N"' + Utf8ToWinCP(user_edit.Text) + '"');
-    Add('/P"' + Utf8ToWinCP(pass_edit.Text) + '"');
-    Add('/RestoreIB"' + Utf8ToWinCP(filename) + '"');
-    Add('/Out "' + Utf8ToWinCP(LogFile) + '" -NoTruncate');
-  end;
-  Process1.Execute;
-  Result := Process1.ExitStatus = 0;
-end;
 
 
-function TForm1.dumpIB(): boolean;
-var
-  fn: string;
-
-begin
-  fn := IncludeTrailingBackslash(ExpandFileName(bakpath_edit.Text)) + FormatDateTime('dd.mm.yyyy_hh.nn.ss', Now()) + '.dt';
-  ForceDirectories(ExtractFileDir(fn));
-  AddLog(LogFile, fn);
-
-  with Process1.Parameters do
-  begin
-    Clear();
-    Add('DESIGNER');
-    Add('/DisableStartupMessages');
-    Add('/DisableStartupDialogs');
-    Add('/DisableSplash');
-    Add('/F"' + Utf8ToWinCP(basepath_edit.Text) + '"');
-    Add('/N"' + Utf8ToWinCP(user_edit.Text) + '"');
-    Add('/P"' + Utf8ToWinCP(pass_edit.Text) + '"');
-    Add('/DumpIB"' + Utf8ToWinCP(fn) + '"');
-    Add('/Out "' + Utf8ToWinCP(LogFile) + '" -NoTruncate');
-  end;
-  Process1.Execute;
-  Result := Process1.ExitStatus = 0;
-end;
-
-function TForm1.loadCFG(filename: string; updateCfg: boolean = True): boolean;
-begin
-  with Process1.Parameters do
-  begin
-    Clear();
-    Add('DESIGNER');
-    Add('/DisableStartupMessages');
-    Add('/DisableStartupDialogs');
-    Add('/DisableSplash');
-    Add('/F"' + Utf8ToWinCP(basepath_edit.Text) + '"');
-    Add('/N"' + Utf8ToWinCP(user_edit.Text) + '"');
-    Add('/P"' + Utf8ToWinCP(pass_edit.Text) + '"');
-    Add('/LoadCfg"' + Utf8ToWinCP(filename) + '"');
-    if ExtractFileExt(filename) = '.cfe' then
-      Add('-Extension"' + Utf8ToWinCP(StringReplace(ExtractFileName(filename), '.cfe', '', [rfReplaceAll, rfIgnoreCase])) + '"');
-    if updateCfg then
-      Add('/UpdateDBCfg');
-    Add('/Out "' + Utf8ToWinCP(LogFile) + '" -NoTruncate');
-  end;
-  Process1.Execute;
-  Result := Process1.ExitStatus = 0;
-end;
-
-function TForm1.dumpCFG(): boolean;
-var
-  fn: string;
-begin
-  fn := IncludeTrailingBackslash(ExpandFileName(bakpath_edit.Text)) + FormatDateTime('dd.mm.yyyy_hh.nn.ss', Now()) + '.cf';
-  AddLog(LogFile, fn);
-  with Process1.Parameters do
-  begin
-    Clear();
-    Add('DESIGNER');
-    Add('/DisableStartupMessages');
-    Add('/DisableStartupDialogs');
-    Add('/DisableSplash');
-    Add('/F"' + Utf8ToWinCP(basepath_edit.Text) + '"');
-    Add('/N"' + Utf8ToWinCP(user_edit.Text) + '"');
-    Add('/P"' + Utf8ToWinCP(pass_edit.Text) + '"');
-    Add('/DumpCfg"' + Utf8ToWinCP(fn) + '"');
-    Add('/Out "' + Utf8ToWinCP(LogFile) + '" -NoTruncate');
-  end;
-  Process1.Execute;
-  Result := Process1.ExitStatus = 0;
-end;
 
 function TForm1.ReduceEventLogSize(date: string): boolean;
 var
   fn: string;
+  params: TStrings;
 begin
-  fn := IncludeTrailingBackslash(ExpandFileName(bakpath_edit.Text)) + date + '.lgd';
+  fn := IncludeTrailingPathDelimiter(ExpandFileName(bakpath_edit.Text)) + date + '.lgd';
   AddLog(LogFile, 'Backup: "' + fn + '"');
-  with Process1.Parameters do
-  begin
-    Clear();
-    Add('DESIGNER');
-    Add('/DisableStartupMessages');
-    Add('/DisableStartupDialogs');
-    Add('/DisableSplash');
-    Add('/F"' + Utf8ToWinCP(basepath_edit.Text) + '"');
-    Add('/N"' + Utf8ToWinCP(user_edit.Text) + '"');
-    Add('/P"' + Utf8ToWinCP(pass_edit.Text) + '"');
-    Add('/ReduceEventLogSize ' + date);
-    Add('-saveAs"' + Utf8ToWinCP(fn) + '"');
-    Add('/Out "' + Utf8ToWinCP(LogFile) + '" -NoTruncate');
-  end;
-  Process1.Execute;
-  Result := Process1.ExitStatus = 0;
+  run_1c('DESIGNER', ['/ReduceEventLogSize ' + date, '-saveAs"' + Utf8ToWinCP(fn) + '"']);
 
   SomeProc.CurrentDirectory := ExtractFilePath(ParamStr(0));
-  SomeProc.Executable := IncludeTrailingBackslash(SomeProc.CurrentDirectory) + 'sqlite3.exe';
+  SomeProc.Executable := IncludeTrailingPathDelimiter(SomeProc.CurrentDirectory) + 'sqlite3.exe';
+  {$IFDEF UNIX}
+  SomeProc.Executable := 'sqlite3';
+  {$ENDIF}
   if FileExists(SomeProc.Executable) then
   begin
     SomeProc.Options := [poWaitOnExit];
@@ -676,7 +560,7 @@ begin
     with SomeProc.Parameters do
     begin
       Clear();
-      Add(Utf8ToWinCP(IncludeTrailingBackslash(basepath_edit.Text) + '1Cv8Log\1Cv8.lgd'));
+      Add(Utf8ToWinCP(IncludeTrailingPathDelimiter(basepath_edit.Text) + '1Cv8Log' + PathDelim + '1Cv8.lgd'));
       Add('vacuum');
     end;
     SomeProc.Execute;
@@ -690,7 +574,10 @@ end;
 function TForm1.CheckPhysicalIntegrity(): boolean;
 begin
   SomeProc.CurrentDirectory := ExtractFilePath(executable_edit.Text);
-  SomeProc.Executable := IncludeTrailingBackslash(SomeProc.CurrentDirectory) + 'chdbfl.exe';
+  SomeProc.Executable := IncludeTrailingPathDelimiter(SomeProc.CurrentDirectory) + 'chdbfl.exe';
+  {$IFDEF UNIX}
+  SomeProc.Executable := IncludeTrailingPathDelimiter(SomeProc.CurrentDirectory) + 'chdbfl';
+  {$ENDIF}
   if FileExists(SomeProc.Executable) then
   begin
     SomeProc.Options := [poWaitOnExit];
@@ -706,9 +593,13 @@ function TForm1.ConvertFileBase(): boolean;
 var
   base_file: string;
 begin
-  base_file := IncludeTrailingBackslash(basepath_edit.Text) + '1Cv8.1CD';
+  base_file := IncludeTrailingPathDelimiter(basepath_edit.Text) + '1Cv8.1CD';
   SomeProc.CurrentDirectory := ExtractFilePath(executable_edit.Text);
-  SomeProc.Executable := IncludeTrailingBackslash(SomeProc.CurrentDirectory) + 'cnvdbfl.exe';
+  SomeProc.Executable := IncludeTrailingPathDelimiter(SomeProc.CurrentDirectory) + 'cnvdbfl.exe';
+  {$IFDEF UNIX}
+  SomeProc.Executable := IncludeTrailingPathDelimiter(SomeProc.CurrentDirectory) + 'cnvdbfl';
+  {$ENDIF}
+
   if FileExists(SomeProc.Executable) then
   begin
     SomeProc.Options := [poWaitOnExit];
@@ -728,59 +619,6 @@ begin
   Result := SomeProc.ExitStatus = 0;
 end;
 
-function TForm1.CheckAndRepair(param: string): boolean;
-var
-  i: integer;
-  params: TStringArray;
-begin
-  params := param.Split(',');
-  with Process1.Parameters do
-  begin
-    Clear();
-    Add('DESIGNER');
-    Add('/DisableStartupMessages');
-    Add('/DisableStartupDialogs');
-    Add('/DisableSplash');
-    Add('/F"' + Utf8ToWinCP(basepath_edit.Text) + '"');
-    Add('/N"' + Utf8ToWinCP(user_edit.Text) + '"');
-    Add('/P"' + Utf8ToWinCP(pass_edit.Text) + '"');
-    Add('/IBCheckAndRepair');
-    for i := 0 to length(params) - 1 do
-      case params[i] of
-        '0': Add('-ReIndex');
-        '1': Add('-LogIntegrity');
-        '2': Add('-LogAndRefsIntegrity');
-        '3': Add('-RecalcTotals');
-        '4': Add('-IBCompression');
-        '5': Add('-Rebuild');
-      end;
-    Add('/Out "' + Utf8ToWinCP(LogFile) + '" -NoTruncate');
-  end;
-  Process1.Execute;
-  Result := Process1.ExitStatus = 0;
-end;
-
-function TForm1.updateBase(filename: string; updateCfg: boolean = False): boolean;
-begin
-  with Process1.Parameters do
-  begin
-    Clear();
-    Add('DESIGNER');
-    Add('/DisableStartupMessages');
-    Add('/DisableStartupDialogs');
-    Add('/DisableSplash');
-    Add('/F"' + Utf8ToWinCP(basepath_edit.Text) + '"');
-    Add('/N"' + Utf8ToWinCP(user_edit.Text) + '"');
-    Add('/P"' + Utf8ToWinCP(pass_edit.Text) + '"');
-    Add('/UpdateCfg"' + Utf8ToWinCP(filename) + '"');
-    if updateCfg then
-      Add('/UpdateDBCfg');
-    Add('/Out "' + Utf8ToWinCP(LogFile) + '" -NoTruncate');
-  end;
-  Process1.Execute;
-  Result := Process1.ExitStatus = 0;
-end;
-
 
 function TForm1.ClearCache(): boolean;
 var
@@ -790,12 +628,12 @@ var
 begin
   Result := True;
   envs := TStringArray.Create(GetEnvironmentVariableUTF8('LocalAppData'), GetEnvironmentVariableUTF8('AppData'));
-  paths := TStringArray.Create('1C\1cv8', '1C\1cv82');
+  paths := TStringArray.Create('1C' + PathDelim + '1cv8', '1C' + PathDelim + '1cv82');
 
   for i := 0 to length(envs) - 1 do
     for j := 0 to length(paths) - 1 do
     begin
-      p := IncludeTrailingBackslash(envs[i]) + paths[j];
+      p := IncludeTrailingPathDelimiter(envs[i]) + paths[j];
       AddLog(LogFile, Format('Удаление %s', [p]));
       if DirectoryExists(p) then
         DeleteDirectory(p, True);
@@ -811,31 +649,15 @@ begin
   end;
 end;
 
-procedure TForm1.SaveSettings();
-var
-  i: integer;
-begin
-  ini.WriteString(SectionMain, KeyExecutable, executable_edit.Text);
-  ini.WriteString(SectionBase, KeyBakcupPath, bakpath_edit.Text);
-  ini.WriteString(SectionBase, KeyPath, basepath_edit.Text);
-  ini.WriteString(SectionBase, KeyUser, user_edit.Text);
-  ini.WriteString(SectionBase, KeyPass, EncodeStringBase64(pass_edit.Text));
-  ini.WriteInteger(SectionBase, KeyBackupCount, bakcount_edit.Value);
-  ini.WriteInteger(SectionBase, KeyPageSize, pagesize_edit.Value);
-  ini.EraseSection(SectionUpdates);
-  ini.EraseSection(SectionMacro);
-  for i := 0 to macro_list.Count - 1 do
-    ini.WriteString(SectionMacro, Format('%d_%d', [i, Ord(TBaseAction(PtrInt(macro_list.Items.Objects[i])))]),
-      macro_list.Items[i]);
-end;
+
 
 procedure TForm1.FormClose(Sender: TObject; var CloseAction: TCloseAction);
 begin
-  if not run_non_interactive and (MessageDlg('Сохранить настройки?', mtConfirmation, mbYesNo, 0) = mrYes) then
-  begin
-    SaveSettings();
-  end;
-  ini.Free;
+  //if not run_non_interactive and (MessageDlg('Сохранить настройки?', mtConfirmation, mbYesNo, 0) = mrYes) then
+  //begin
+  //  SaveSettings();
+  //end;
+  //ini.Free;
 end;
 
 
@@ -860,11 +682,27 @@ begin
     mtError, [mbOK], 0);
 end;
 
+
+procedure TForm1.populateMacrosMenu(src, dst: TMenuItem);
+var
+  _mi, mi: TMenuItem;
+begin
+  for mi in src do
+  begin
+    _mi := TMenuItem.Create(nil);
+    _mi.Caption := mi.Caption;
+    _mi.OnClick := mi.OnClick;
+    _mi.Tag := 1;
+    if mi.Count > 0 then
+      populateMacrosMenu(mi, _mi);
+    dst.add(_mi);
+  end;
+end;
+
 procedure TForm1.FormCreate(Sender: TObject);
 var
-  list: TStrings;
   i, k: integer;
-  mi: TMenuItem;
+
 begin
   Application.OnException := @CustomExceptionHandler;
 
@@ -882,42 +720,9 @@ begin
   end;
   StatusBar1.SimpleText := AnsiToUtf8(iniPath);
   ini := TIniFile.Create(iniPath);
-  executable_edit.Text := ini.ReadString(SectionMain, KeyExecutable, '');
-  LogFile := ini.ReadString(SectionMain, KeyLogFile, IncludeTrailingPathDelimiter('logs') +
-    ChangeFileExt(ExtractFileName(iniPath), '.log'));
-  bakpath_edit.Text := ini.ReadString(SectionBase, KeyBakcupPath, '');
-  bakcount_edit.Value := ini.ReadInteger(SectionBase, KeyBackupCount, 3);
-  pagesize_edit.Value := ini.ReadInteger(SectionBase, KeyPageSize, 8);
-  basepath_edit.Text := ini.ReadString(SectionBase, KeyPath, '');
-  user_edit.Text := ini.ReadString(SectionBase, KeyUser, '');
-  try
-    pass_edit.Text := DecodeStringBase64(ini.ReadString(SectionBase, KeyPass, ''));
-  except
-  end;
-  list := TStringList.Create;
-
-  try
-    ini.ReadSectionValues(SectionMacro, list);
-    for i := 0 to list.Count - 1 do
-      macro_list.AddItem(list.ValueFromIndex[i], TObject(PtrInt(TBaseAction(StrToInt(list.Names[i].Split('_')[1])))));
-  finally
-    list.Free;
-  end;
-  for i := 0 to commands_menu.Count - 1 do
-  begin
-    mi := TMenuItem.Create(nil);
-    mi.Caption := commands_menu.Items[i].Caption;
-    mi.OnClick := commands_menu.Items[i].OnClick;
-    mi.Tag := 1;
-    PopupMenu2.Items[0].Add(mi);
-    //for k:=0 to  commands_menu.Items[i].Count do
-    //begin
-    //  mi.Add();
-    //mi.Caption:=commands_menu.Items[i].Caption;
-    //mi.OnClick:=commands_menu.Items[i].OnClick;
-    //PopupMenu2.Items[0].Add(mi);
-    //end;
-  end;
+  LogFile := 'logs' + PathDelim + ChangeFileExt(ExtractFileName(iniPath), '.log');
+  mi_reload_config.Click();
+  populateMacrosMenu(commands_menu, macros_menu.Items[0]);
   AddLog(LogFile, ExtractFileName(ParamStr(0)) + ' started!');
   if run_non_interactive then
   begin
@@ -930,6 +735,24 @@ procedure TForm1.executable_editChange(Sender: TObject);
 begin
   if not Process1.Running then
     Process1.Executable := executable_edit.Text;
+end;
+
+procedure TForm1.macros_listDragDrop(Sender, Source: TObject; X, Y: integer);
+var
+  k: integer;
+begin
+  with (Sender as TListBox) do
+  begin
+    k := ItemAtPos(Point(x, y), False);
+    if k < 0 then
+      k := Count - 1;
+    Items.Move(ItemIndex, k);
+  end;
+end;
+
+procedure TForm1.macros_listDragOver(Sender, Source: TObject; X, Y: integer; State: TDragState; var Accept: boolean);
+begin
+  Accept := (Sender = Source);
 end;
 
 
@@ -948,6 +771,9 @@ procedure TForm1.BitBtn2Click(Sender: TObject);
 begin
   OpenDialog1.InitialDir := ExtractFilePath(executable_edit.Text);
   OpenDialog1.FilterIndex := 2;
+  {$IFDEF UNIX}
+  OpenDialog1.FilterIndex := 5;
+  {$ENDIF}
   if OpenDialog1.Execute then
   begin
     executable_edit.Text := OpenDialog1.FileName;
@@ -964,15 +790,15 @@ procedure TForm1.mi_del_from_macroClick(Sender: TObject);
 var
   k: integer;
 begin
-  k := macro_list.ItemIndex;
+  k := macros_list.ItemIndex;
   if k < 0 then
     exit;
-  macro_list.Items.Delete(k);
+  macros_list.Items.Delete(k);
 end;
 
 procedure TForm1.mi_del_allClick(Sender: TObject);
 begin
-  macro_list.Items.Clear;
+  macros_list.Items.Clear;
 end;
 
 
@@ -1046,17 +872,25 @@ begin
     MyThread := TMyThread.Create(ba_config);
 end;
 
-procedure TForm1.MenuItem8Click(Sender: TObject);
+
+
+procedure TForm1.mi_updateClick(Sender: TObject);
 begin
-  SaveSettings();
+  OpenDialog1.InitialDir := bakpath_edit.Text;
+  OpenDialog1.FilterIndex := 1;
+  if OpenDialog1.Execute then
+    if (Sender as TMenuItem).Tag = 1 then
+      AddMacrosCommand(Sender, ba_update, OpenDialog1.FileName)
+    else
+      MyThread := TMyThread.Create(ba_update, OpenDialog1.FileName);
 end;
 
-procedure TForm1.mi_updatecfgClick(Sender: TObject);
+procedure TForm1.mi_update_cfgClick(Sender: TObject);
 begin
   if (Sender as TMenuItem).Tag = 1 then
-    AddMacrosCommand(Sender, ba_update)
+    AddMacrosCommand(Sender, ba_updatecfg)
   else
-    MyThread := TMyThread.Create(ba_update);
+    MyThread := TMyThread.Create(ba_updatecfg);
 end;
 
 
@@ -1089,6 +923,55 @@ begin
     MyThread := TMyThread.Create(ba_dumpcfg);
 end;
 
+procedure TForm1.mi_reload_configClick(Sender: TObject);
+var
+  i: integer;
+  list: TStrings;
+begin
+  executable_edit.Text := ini.ReadString(SectionMain, KeyExecutable, '');
+  bakpath_edit.Text := ini.ReadString(SectionBase, KeyBakcupPath, '');
+  bakcount_edit.Value := ini.ReadInteger(SectionBase, KeyBackupCount, 3);
+  pagesize_edit.Value := ini.ReadInteger(SectionBase, KeyPageSize, 8);
+  basepath_edit.Text := ini.ReadString(SectionBase, KeyPath, '');
+  user_edit.Text := ini.ReadString(SectionBase, KeyUser, '');
+  try
+    pass_edit.Text := DecodeStringBase64(ini.ReadString(SectionBase, KeyPass, ''));
+  except
+  end;
+  list := TStringList.Create;
+
+  try
+    ini.ReadSectionValues(SectionMacro, list);
+    macros_list.Clear;
+    for i := 0 to list.Count - 1 do
+      macros_list.AddItem(list.ValueFromIndex[i], TObject(PtrInt(TBaseAction(StrToInt(list.Names[i].Split('_')[1])))));
+  finally
+    list.Free;
+  end;
+  AddLog(LogFile, 'Настройки загружены');
+end;
+
+procedure TForm1.mi_save_configClick(Sender: TObject);
+var
+  i: integer;
+begin
+  ini.WriteString(SectionMain, KeyExecutable, executable_edit.Text);
+  ini.WriteString(SectionBase, KeyBakcupPath, bakpath_edit.Text);
+  ini.WriteString(SectionBase, KeyPath, basepath_edit.Text);
+  ini.WriteString(SectionBase, KeyUser, user_edit.Text);
+  ini.WriteString(SectionBase, KeyPass, EncodeStringBase64(pass_edit.Text));
+  ini.WriteInteger(SectionBase, KeyBackupCount, bakcount_edit.Value);
+  ini.WriteInteger(SectionBase, KeyPageSize, pagesize_edit.Value);
+  ini.EraseSection(SectionUpdates);
+  ini.EraseSection(SectionMacro);
+  for i := 0 to macros_list.Count - 1 do
+    ini.WriteString(SectionMacro, Format('%d_%d', [i, Ord(TBaseAction(PtrInt(macros_list.Items.Objects[i])))]),
+      macros_list.Items[i]);
+  AddLog(LogFile, 'Настройки сохранены');
+end;
+
+
+
 procedure TForm1.mi_loadcfgClick(Sender: TObject);
 begin
   OpenDialog1.InitialDir := bakpath_edit.Text;
@@ -1116,20 +999,20 @@ function TForm1.AddMacrosCommand(Sender: TObject; baseAction: TBaseAction; param
 var
   k: integer;
 begin
-  k := macro_list.ItemIndex;
+  k := macros_list.ItemIndex;
   if param.IsEmpty() then
   begin
     if (k > -1) then
-      macro_list.Items.InsertObject(k, TMenuItem(Sender).Caption, TObject(PtrUint(baseAction)))
+      macros_list.Items.InsertObject(k, TMenuItem(Sender).Caption, TObject(PtrUint(baseAction)))
     else
-      macro_list.AddItem(TMenuItem(Sender).Caption, TObject(PtrUint(baseAction)));
+      macros_list.AddItem(TMenuItem(Sender).Caption, TObject(PtrUint(baseAction)));
   end
   else
   begin
     if (k > -1) then
-      macro_list.Items.InsertObject(k, Format('%s(%s)', [TMenuItem(Sender).Caption, param]), TObject(PtrUint(baseAction)))
+      macros_list.Items.InsertObject(k, Format('%s(%s)', [TMenuItem(Sender).Caption, param]), TObject(PtrUint(baseAction)))
     else
-      macro_list.AddItem(Format('%s(%s)', [TMenuItem(Sender).Caption, param]), TObject(PtrUint(baseAction)));
+      macros_list.AddItem(Format('%s(%s)', [TMenuItem(Sender).Caption, param]), TObject(PtrUint(baseAction)));
   end;
   Result := True;
 end;

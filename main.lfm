@@ -1,7 +1,7 @@
 object Form1: TForm1
-  Left = 504
+  Left = 876
   Height = 529
-  Top = 161
+  Top = 167
   Width = 787
   Caption = 'Обновление 1с'
   ClientHeight = 505
@@ -156,16 +156,20 @@ object Form1: TForm1
       Align = alBottom
       ResizeAnchor = akBottom
     end
-    object macro_list: TListBox
+    object macros_list: TListBox
       Left = 0
       Height = 196
       Top = 0
       Width = 785
       Align = alClient
+      DragMode = dmAutomatic
       ItemHeight = 0
+      OnDragDrop = macros_listDragDrop
+      OnDragOver = macros_listDragOver
       ParentFont = False
-      PopupMenu = PopupMenu2
+      PopupMenu = macros_menu
       ScrollWidth = 783
+      Style = lbVirtual
       TabOrder = 1
       TopIndex = -1
     end
@@ -416,9 +420,13 @@ object Form1: TForm1
         Caption = 'Загрузить ИБ'
         OnClick = mi_loadibClick
       end
-      object mi_updatecfg: TMenuItem
+      object mi_update: TMenuItem
         Caption = 'Выполнить обновление'
-        OnClick = mi_updatecfgClick
+        OnClick = mi_updateClick
+      end
+      object mi_update_cfg: TMenuItem
+        Caption = 'Применить обновление конфигурации'
+        OnClick = mi_update_cfgClick
       end
       object mi_testcheck: TMenuItem
         Caption = 'Тестирование и исправление'
@@ -465,21 +473,24 @@ object Form1: TForm1
     end
     object MenuItem8: TMenuItem
       Caption = 'Настройки'
-      OnClick = MenuItem8Click
       object mi_save_config: TMenuItem
         Caption = 'Сохранить'
-        OnClick = MenuItem8Click
+        OnClick = mi_save_configClick
       end
       object mi_reload_config: TMenuItem
         Caption = 'Перезагрузить'
+        OnClick = mi_reload_configClick
       end
     end
-    object MenuItem4: TMenuItem
-      Caption = 'О программе'
-      OnClick = MenuItem4Click
+    object MenuItem1: TMenuItem
+      Caption = 'Справка'
+      object MenuItem4: TMenuItem
+        Caption = 'О программе'
+        OnClick = MenuItem4Click
+      end
     end
   end
-  object PopupMenu2: TPopupMenu
+  object macros_menu: TPopupMenu
     left = 120
     top = 254
     object mi_add_to_macro: TMenuItem
