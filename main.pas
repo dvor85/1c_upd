@@ -256,11 +256,9 @@ end;
 
 procedure TMyThread.Execute;
 var
-  i, totalTasks: integer;
-  msg, param: string;
-  params: TStringArray;
+  msg: string;
 begin
-  //Form1.SetComponentsEnabled(False);
+  Form1.SetComponentsEnabled(False);
   Form1.progress := 0;
   try
     try
@@ -277,14 +275,12 @@ begin
       on e: Exception do
       begin
         msg := e.message;
-        Form1.Caption := 'Операция завершена с ошибкой: "' + msg +
-          '". Проверьте ' + ExtractFilePath(ParamStr(0)) + Form1.LogFile;
-        AddLog(Form1.LogFile, Form1.Caption);
-        MessageDlg(Form1.Caption, mtError, [mbOK], 0);
+        AddLog(Form1.LogFile, 'Операция завершена с ошибкой: "' + msg +
+          '". Проверьте ' + ExtractFilePath(ParamStr(0)) + Form1.LogFile);
       end;
     end;
   finally
-    //Form1.SetComponentsEnabled(True);
+    Form1.SetComponentsEnabled(True);
     self.Terminate;
   end;
 end;
@@ -293,7 +289,7 @@ end;
 procedure TForm1.ExecuteBaseAction(baseAction: TBaseAction; param: string);
 var
   i, _action: integer;
-  _param, fn: string;
+  _param, fn, msg: string;
   _params: TStringArray;
 begin
   case baseAction of
@@ -308,92 +304,92 @@ begin
         _action := PtrInt(macros_list.Items.Objects[i]);
         ExecuteBaseAction(TbaseAction(_action), _param);
       end;
-      Caption := 'Выполнение макроса успешно завершено!';
-      AddLog(LogFile, Caption);
+      msg := 'Выполнение макроса успешно завершено!';
+      AddLog(LogFile, msg);
     end;
 
     ba_update:
     begin
-      Caption := 'Установка обновления';
-      AddLog(LogFile, Format('%s: "%s"', [Caption, param]));
+      msg := 'Установка обновления';
+      AddLog(LogFile, Format('%s: "%s"', [msg, param]));
 
-      if not run_1c('DESIGNER', ['/UpdateCfg']) then
+      if (param = '') or (not run_1c('DESIGNER', ['/UpdateCfg', UTF8ToWinCP(param)])) then
         raise Exception.Create('Ошибка обновления!');
       macros_list.ClearSelection;
     end;
 
     ba_updatecfg:
     begin
-      Caption := 'Обновление конфигурации';
-      AddLog(LogFile, Caption);
+      msg := 'Обновление конфигурации';
+      AddLog(LogFile, msg);
       if not run_1c('DESIGNER', ['/UpdateDBCfg']) then
-        raise Exception.Create(Caption + ' не выполнена!');
-      Caption := 'Выполнение макроса успешно завершено!';
-      AddLog(LogFile, Caption);
+        raise Exception.Create(msg + ' не выполнена!');
+      msg := 'Выполнение макроса успешно завершено!';
+      AddLog(LogFile, msg);
     end;
 
     ba_dumpib:
     begin
-      Caption := 'Выгрузка информационной базы';
+      msg := 'Выгрузка информационной базы';
       fn := IncludeTrailingPathDelimiter(ExpandFileName(bakpath_edit.Text)) +
         FormatDateTime('dd.mm.yyyy_hh.nn.ss', Now()) + '.dt';
-      AddLog(LogFile, Format('%s: "%s"', [Caption, fn]));
+      AddLog(LogFile, Format('%s: "%s"', [msg, fn]));
       ForceDirectories(ExtractFileDir(fn));
       if not run_1c('DESIGNER', ['/DumpIB', UTF8ToWinCP(fn)]) then
-        raise Exception.Create(Caption + ' не выполнена!');
-      Caption := Caption + ' завершена!';
-      AddLog(LogFile, Caption);
+        raise Exception.Create(msg + ' не выполнена!');
+      msg := msg + ' завершена!';
+      AddLog(LogFile, msg);
       DeleteOld(IncludeTrailingPathDelimiter(ExpandFileName(bakpath_edit.Text)), '*.dt', bakcount_edit.Value);
     end;
 
     ba_restoreib:
     begin
-      Caption := 'Загрузка информационной базы';
-      AddLog(LogFile, Format('%s "%s"', [Caption, param]));
+      msg := 'Загрузка информационной базы';
+      AddLog(LogFile, Format('%s "%s"', [msg, param]));
       if (param = '') or (not run_1c('DESIGNER', ['/DumpIB', UTF8ToWinCP(param)])) then
-        raise Exception.Create(Caption + ' завершена с ошибкой!');
-      Caption := Caption + ' успешно завершено!';
-      AddLog(LogFile, Caption);
+        raise Exception.Create(msg + ' завершена с ошибкой!');
+      msg := msg + ' успешно завершено!';
+      AddLog(LogFile, msg);
     end;
 
     ba_dumpcfg:
     begin
-      Caption := 'Выгрузка конфигурации';
+      msg := 'Выгрузка конфигурации';
       fn := IncludeTrailingPathDelimiter(ExpandFileName(bakpath_edit.Text)) +
         FormatDateTime('dd.mm.yyyy_hh.nn.ss', Now()) + '.cf';
-      AddLog(LogFile, Format('%s: "%s"', [Caption, fn]));
+      AddLog(LogFile, Format('%s: "%s"', [msg, fn]));
       ForceDirectories(ExtractFileDir(fn));
       if not run_1c('DESIGNER', ['/DumpCFG', UTF8ToWinCP(fn)]) then
         raise Exception.Create('Кофигурация не выгружена!');
-      Caption := 'Кофигурация успешно выгружена!';
-      AddLog(LogFile, Caption);
+      msg := 'Кофигурация успешно выгружена!';
+      AddLog(LogFile, msg);
       DeleteOld(IncludeTrailingPathDelimiter(ExpandFileName(bakpath_edit.Text)), '*.cf', bakcount_edit.Value);
     end;
 
     ba_loadcfg:
     begin
-      Caption := 'Загрузка конфигурации';
-      AddLog(LogFile, Format('%s "%s"', [Caption, param]));
+      msg := 'Загрузка конфигурации';
+      AddLog(LogFile, Format('%s "%s"', [msg, param]));
       setlength(_params, 0);
       SetLength(_params, 3);
+      _params[0] := '/LoadCFG';
+      _params[1] := UTF8ToWinCP(param);
       if ExtractFileExt(param) = '.cfe' then
       begin
-        Caption := 'Загрузка расширения';
-        _params[0] := '-Extension"' + Utf8ToWinCP(StringReplace(ExtractFileName(param), '.cfe', '',
+        msg := 'Загрузка расширения';
+        _params[2] := '-Extension"' + Utf8ToWinCP(StringReplace(ExtractFileName(param), '.cfe', '',
           [rfReplaceAll, rfIgnoreCase])) + '"';
       end;
-      _params[1] := '/LoadCFG';
-      _params[2] := UTF8ToWinCP(param);
       if (param = '') or (not run_1c('DESIGNER', _params)) then
-        raise Exception.Create('Ошибка ' + Caption + '!');
-      Caption := Caption + ' успешно завершено!';
-      AddLog(LogFile, Caption);
+        raise Exception.Create('Ошибка ' + msg + '!');
+      msg := msg + ' успешно завершено!';
+      AddLog(LogFile, msg);
     end;
 
     ba_check:
     begin
-      Caption := 'Тестирование и исправление базы';
-      AddLog(LogFile, Caption);
+      msg := 'Тестирование и исправление базы';
+      AddLog(LogFile, msg);
       _params := param.Split([',']);
       for i := 0 to length(_params) - 1 do
         case _params[i] of
@@ -405,78 +401,80 @@ begin
           '5': _params[i] := '-Rebuild';
         end;
       setlength(_params, length(_params) + 1);
-      _params[length(_params)] := '/IBCheckAndRepair';
+      _params[length(_params)] := _params[0];
+      _params[0] := '/IBCheckAndRepair';
+
       if not run_1c('DESIGNER', _params) then
-        raise Exception.Create(Caption + ' завершено с ошибкой!');
-      Caption := Caption + ' успешно завершено!';
-      AddLog(LogFile, Caption);
+        raise Exception.Create(msg + ' завершено с ошибкой!');
+      msg := msg + ' успешно завершено!';
+      AddLog(LogFile, msg);
     end;
 
     ba_enterprise:
     begin
-      Caption := 'Запуск в режиме ENTERPRISE';
-      AddLog(LogFile, Caption);
+      msg := 'Запуск в режиме ENTERPRISE';
+      AddLog(LogFile, msg);
       if not run_1c('ENTERPRISE', []) then
-        raise Exception.Create(Caption + ' завершен с ошибкой!');
-      Caption := Caption + ' успешно завершен!';
-      AddLog(LogFile, Caption);
+        raise Exception.Create(msg + ' завершен с ошибкой!');
+      msg := msg + ' успешно завершен!';
+      AddLog(LogFile, msg);
     end;
 
     ba_config:
     begin
-      Caption := 'Запуск в режиме конфигуратора';
-      AddLog(LogFile, Caption);
+      msg := 'Запуск в режиме конфигуратора';
+      AddLog(LogFile, msg);
       if not run_1c('DESIGNER', []) then
-        raise Exception.Create(Caption + ' завершен с ошибкой!');
-      Caption := Caption + ' успешно завершен!';
-      AddLog(LogFile, Caption);
+        raise Exception.Create(msg + ' завершен с ошибкой!');
+      msg := msg + ' успешно завершен!';
+      AddLog(LogFile, msg);
     end;
     ba_integrity:
     begin
-      Caption := 'Восстановление структуры информационной базы';
-      AddLog(LogFile, Caption);
+      msg := 'Восстановление структуры информационной базы';
+      AddLog(LogFile, msg);
       if not run_1c('DESIGNER', ['/IBRestoreIntegrity']) then
-        raise Exception.Create(Caption + ' завершено с ошибкой!');
-      Caption := Caption + ' успешно завершено!';
-      AddLog(LogFile, Caption);
+        raise Exception.Create(msg + ' завершено с ошибкой!');
+      msg := msg + ' успешно завершено!';
+      AddLog(LogFile, msg);
     end;
     ba_physical:
     begin
-      Caption := 'Восстановление физической целостности';
-      AddLog(LogFile, Caption);
+      msg := 'Восстановление физической целостности';
+      AddLog(LogFile, msg);
       if not CheckPhysicalIntegrity() then
-        raise Exception.Create(Caption + ' завершено с ошибкой!');
-      Caption := Caption + ' успешно завершено!';
-      AddLog(LogFile, Caption);
+        raise Exception.Create(msg + ' завершено с ошибкой!');
+      msg := msg + ' успешно завершено!';
+      AddLog(LogFile, msg);
     end;
     ba_cache:
     begin
-      Caption := 'Очистка кэша';
-      AddLog(LogFile, Caption);
+      msg := 'Очистка кэша';
+      AddLog(LogFile, msg);
       if not ClearCache() then
-        raise Exception.Create(Caption + ' завершена с ошибкой!');
-      Caption := Caption + ' успешно завершена!';
-      AddLog(LogFile, Caption);
+        raise Exception.Create(msg + ' завершена с ошибкой!');
+      msg := msg + ' успешно завершена!';
+      AddLog(LogFile, msg);
     end;
     ba_convert:
     begin
-      Caption := 'Конвертация файловой ИБ в новый формат';
-      AddLog(LogFile, Caption);
+      msg := 'Конвертация файловой ИБ в новый формат';
+      AddLog(LogFile, msg);
       if not ConvertFileBase() then
-        raise Exception.Create(Caption + ' завершена с ошибкой!');
-      Caption := Caption + ' успешно завершена!';
-      AddLog(LogFile, Caption);
+        raise Exception.Create(msg + ' завершена с ошибкой!');
+      msg := msg + ' успешно завершена!';
+      AddLog(LogFile, msg);
     end;
     ba_journal:
     begin
-      Caption := 'Сокращение журнала регистрации';
+      msg := 'Сокращение журнала регистрации';
       if not param.IsEmpty then
       begin
-        AddLog(LogFile, Format('%s "%s"', [Caption, param]));
+        AddLog(LogFile, Format('%s "%s"', [msg, param]));
         if not ReduceEventLogSize(param) then
-          raise Exception.Create(Caption + ' завершено с ошибкой!');
-        Caption := Caption + ' успешно завершено!';
-        AddLog(LogFile, Caption);
+          raise Exception.Create(msg + ' завершено с ошибкой!');
+        msg := msg + ' успешно завершено!';
+        AddLog(LogFile, msg);
         DeleteOld(IncludeTrailingPathDelimiter(ExpandFileName(bakpath_edit.Text)), '*.lgd', bakcount_edit.Value);
       end;
     end;
@@ -525,6 +523,7 @@ begin
     Clear();
     Add(mode);
     Add('/DisableStartupMessages');
+    Add('/DisableStartupDialogs');
     Add('/DisableSplash');
     AddStrings(params);
     Add('/F"' + UTF8ToWinCP(basepath_edit.Text) + '"');
@@ -542,19 +541,21 @@ end;
 function TForm1.ReduceEventLogSize(date: string): boolean;
 var
   fn: string;
-  params: TStrings;
 begin
+  Result:=True;
   fn := IncludeTrailingPathDelimiter(ExpandFileName(bakpath_edit.Text)) + date + '.lgd';
   AddLog(LogFile, 'Backup: "' + fn + '"');
   run_1c('DESIGNER', ['/ReduceEventLogSize ' + date, '-saveAs"' + Utf8ToWinCP(fn) + '"']);
 
   SomeProc.CurrentDirectory := ExtractFilePath(ParamStr(0));
-  SomeProc.Executable := IncludeTrailingPathDelimiter(SomeProc.CurrentDirectory) + 'sqlite3.exe';
+  {$IFDEF MSWINDOWS}
+  SomeProc.Executable := 'sqlite3.exe';
+  {$ENDIF}
   {$IFDEF UNIX}
   SomeProc.Executable := 'sqlite3';
   {$ENDIF}
-  if FileExists(SomeProc.Executable) then
-  begin
+  //if FileExists(SomeProc.Executable) then
+  //begin
     SomeProc.Options := [poWaitOnExit];
     SomeProc.ShowWindow := swoHIDE;
     with SomeProc.Parameters do
@@ -564,9 +565,9 @@ begin
       Add('vacuum');
     end;
     SomeProc.Execute;
-  end
-  else
-    AddLog(LogFile, 'Отсутствует: "' + SomeProc.Executable + '"');
+  //end
+  //else
+    //AddLog(LogFile, 'Отсутствует: "' + SomeProc.Executable + '"');
 
 end;
 
@@ -574,7 +575,9 @@ end;
 function TForm1.CheckPhysicalIntegrity(): boolean;
 begin
   SomeProc.CurrentDirectory := ExtractFilePath(executable_edit.Text);
+  {$IFDEF MSWINDOWS}
   SomeProc.Executable := IncludeTrailingPathDelimiter(SomeProc.CurrentDirectory) + 'chdbfl.exe';
+  {$ENDIF}
   {$IFDEF UNIX}
   SomeProc.Executable := IncludeTrailingPathDelimiter(SomeProc.CurrentDirectory) + 'chdbfl';
   {$ENDIF}
@@ -595,7 +598,9 @@ var
 begin
   base_file := IncludeTrailingPathDelimiter(basepath_edit.Text) + '1Cv8.1CD';
   SomeProc.CurrentDirectory := ExtractFilePath(executable_edit.Text);
+  {$IFDEF MSWINDOWS}
   SomeProc.Executable := IncludeTrailingPathDelimiter(SomeProc.CurrentDirectory) + 'cnvdbfl.exe';
+  {$ENDIF}
   {$IFDEF UNIX}
   SomeProc.Executable := IncludeTrailingPathDelimiter(SomeProc.CurrentDirectory) + 'cnvdbfl';
   {$ENDIF}
@@ -627,8 +632,14 @@ var
   p: string;
 begin
   Result := True;
+  {$IFDEF MSWINDOWS}
   envs := TStringArray.Create(GetEnvironmentVariableUTF8('LocalAppData'), GetEnvironmentVariableUTF8('AppData'));
   paths := TStringArray.Create('1C' + PathDelim + '1cv8', '1C' + PathDelim + '1cv82');
+  {$ENDIF}
+  {$IFDEF UNIX}
+  envs := TStringArray.Create(GetEnvironmentVariableUTF8('home'));
+  paths := TStringArray.Create('.1cv8' + PathDelim +'1C', '.1cv82' + PathDelim +'1C');
+  {$ENDIF}
 
   for i := 0 to length(envs) - 1 do
     for j := 0 to length(paths) - 1 do
@@ -701,7 +712,7 @@ end;
 
 procedure TForm1.FormCreate(Sender: TObject);
 var
-  i, k: integer;
+  i: integer;
 
 begin
   Application.OnException := @CustomExceptionHandler;
@@ -1003,16 +1014,16 @@ begin
   if param.IsEmpty() then
   begin
     if (k > -1) then
-      macros_list.Items.InsertObject(k, TMenuItem(Sender).Caption, TObject(PtrUint(baseAction)))
+      macros_list.Items.InsertObject(k, TMenuItem(Sender).Caption, TObject(PtrInt(baseAction)))
     else
-      macros_list.AddItem(TMenuItem(Sender).Caption, TObject(PtrUint(baseAction)));
+      macros_list.AddItem(TMenuItem(Sender).Caption, TObject(PtrInt(baseAction)));
   end
   else
   begin
     if (k > -1) then
-      macros_list.Items.InsertObject(k, Format('%s(%s)', [TMenuItem(Sender).Caption, param]), TObject(PtrUint(baseAction)))
+      macros_list.Items.InsertObject(k, Format('%s(%s)', [TMenuItem(Sender).Caption, param]), TObject(PtrInt(baseAction)))
     else
-      macros_list.AddItem(Format('%s(%s)', [TMenuItem(Sender).Caption, param]), TObject(PtrUint(baseAction)));
+      macros_list.AddItem(Format('%s(%s)', [TMenuItem(Sender).Caption, param]), TObject(PtrInt(baseAction)));
   end;
   Result := True;
 end;

@@ -1,11 +1,11 @@
 object Form1: TForm1
-  Left = 876
+  Left = 304
   Height = 529
-  Top = 167
-  Width = 787
+  Top = 183
+  Width = 821
   Caption = 'Обновление 1с'
   ClientHeight = 505
-  ClientWidth = 787
+  ClientWidth = 821
   Menu = MainMenu1
   OnClose = FormClose
   OnCloseQuery = FormCloseQuery
@@ -16,18 +16,18 @@ object Form1: TForm1
     Left = 0
     Height = 75
     Top = 45
-    Width = 787
+    Width = 821
     Align = alTop
     Caption = 'База'
     ClientHeight = 58
-    ClientWidth = 785
+    ClientWidth = 819
     ParentFont = False
     TabOrder = 1
     object basepath_edit: TLabeledEdit
       Left = 40
       Height = 27
       Top = -3
-      Width = 696
+      Width = 730
       Anchors = [akTop, akLeft, akRight]
       EditLabel.Height = 14
       EditLabel.Width = 29
@@ -39,7 +39,7 @@ object Form1: TForm1
       TabOrder = 0
     end
     object BitBtn1: TBitBtn
-      Left = 743
+      Left = 777
       Height = 25
       Top = -3
       Width = 32
@@ -102,7 +102,8 @@ object Form1: TForm1
       Left = 376
       Height = 27
       Top = 27
-      Width = 196
+      Width = 213
+      Anchors = [akTop, akLeft, akRight]
       EchoMode = emPassword
       EditLabel.Height = 14
       EditLabel.Width = 47
@@ -115,10 +116,11 @@ object Form1: TForm1
       TabOrder = 3
     end
     object pagesize_edit: TSpinEdit
-      Left = 728
+      Left = 747
       Height = 27
       Top = 27
-      Width = 47
+      Width = 62
+      Anchors = [akTop, akRight]
       Increment = 8
       MaxValue = 64
       MinValue = 8
@@ -127,10 +129,11 @@ object Form1: TForm1
       Value = 8
     end
     object Label2: TLabel
-      Left = 604
+      Left = 625
       Height = 14
       Top = 32
       Width = 111
+      Anchors = [akTop, akRight]
       Caption = 'Размер страницы'
       ParentColor = False
       ParentFont = False
@@ -140,11 +143,11 @@ object Form1: TForm1
     Left = 0
     Height = 322
     Top = 166
-    Width = 787
+    Width = 821
     Align = alClient
     Caption = 'Команды'
     ClientHeight = 305
-    ClientWidth = 785
+    ClientWidth = 819
     ParentFont = False
     TabOrder = 2
     object Splitter1: TSplitter
@@ -152,7 +155,7 @@ object Form1: TForm1
       Left = 0
       Height = 4
       Top = 196
-      Width = 785
+      Width = 819
       Align = alBottom
       ResizeAnchor = akBottom
     end
@@ -160,7 +163,7 @@ object Form1: TForm1
       Left = 0
       Height = 196
       Top = 0
-      Width = 785
+      Width = 819
       Align = alClient
       DragMode = dmAutomatic
       ItemHeight = 0
@@ -168,7 +171,7 @@ object Form1: TForm1
       OnDragOver = macros_listDragOver
       ParentFont = False
       PopupMenu = macros_menu
-      ScrollWidth = 783
+      ScrollWidth = 817
       Style = lbVirtual
       TabOrder = 1
       TopIndex = -1
@@ -177,17 +180,17 @@ object Form1: TForm1
       Left = 0
       Height = 105
       Top = 200
-      Width = 785
+      Width = 819
       Align = alBottom
       Caption = 'Логи'
       ClientHeight = 88
-      ClientWidth = 783
+      ClientWidth = 817
       TabOrder = 2
       object logs_memo: TMemo
         Left = 0
         Height = 88
         Top = 0
-        Width = 783
+        Width = 817
         Align = alClient
         ParentFont = False
         ReadOnly = True
@@ -200,18 +203,18 @@ object Form1: TForm1
     Left = 0
     Height = 45
     Top = 0
-    Width = 787
+    Width = 821
     Align = alTop
     Caption = 'Программа 1с'
     ClientHeight = 28
-    ClientWidth = 785
+    ClientWidth = 819
     ParentFont = False
     TabOrder = 0
     object executable_edit: TLabeledEdit
       Left = 40
       Height = 27
       Top = -1
-      Width = 696
+      Width = 730
       Anchors = [akTop, akLeft, akRight]
       EditLabel.Height = 14
       EditLabel.Width = 29
@@ -224,7 +227,7 @@ object Form1: TForm1
       OnChange = executable_editChange
     end
     object BitBtn2: TBitBtn
-      Left = 744
+      Left = 777
       Height = 25
       Top = -1
       Width = 32
@@ -274,7 +277,7 @@ object Form1: TForm1
     Left = 0
     Height = 17
     Top = 488
-    Width = 787
+    Width = 821
     Panels = <>
     ParentFont = False
   end
@@ -282,18 +285,18 @@ object Form1: TForm1
     Left = 0
     Height = 46
     Top = 120
-    Width = 787
+    Width = 821
     Align = alTop
     Caption = 'Резервная копия'
     ClientHeight = 29
-    ClientWidth = 785
+    ClientWidth = 819
     ParentFont = False
     TabOrder = 4
     object bakpath_edit: TLabeledEdit
       Left = 112
       Height = 27
       Top = -2
-      Width = 460
+      Width = 477
       Anchors = [akTop, akLeft, akRight]
       EditLabel.Height = 14
       EditLabel.Width = 102
@@ -305,8 +308,8 @@ object Form1: TForm1
       TabOrder = 0
     end
     object BitBtn3: TBitBtn
-      Left = 579
-      Height = 25
+      Left = 595
+      Height = 29
       Top = -2
       Width = 32
       Anchors = [akTop, akRight]
@@ -353,20 +356,23 @@ object Form1: TForm1
       TabOrder = 1
     end
     object bakcount_edit: TSpinEdit
-      Left = 728
+      Left = 747
       Height = 27
       Top = -2
-      Width = 47
+      Width = 62
+      Anchors = [akTop, akRight]
       MinValue = 1
       ParentFont = False
       TabOrder = 2
       Value = 3
     end
     object Label1: TLabel
-      Left = 642
+      Left = 663
       Height = 14
-      Top = 2
+      Top = 3
       Width = 73
+      Alignment = taCenter
+      Anchors = [akTop, akRight]
       Caption = 'Количество'
       ParentColor = False
       ParentFont = False
