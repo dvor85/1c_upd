@@ -5,9 +5,9 @@ unit main;
 interface
 
 uses
-  Classes, SysUtils, process, Forms, Controls, Dialogs, ExtCtrls, StdCtrls,
+  Classes, SysUtils, Forms, Controls, Dialogs, ExtCtrls, StdCtrls,
   Buttons, Menus, ComCtrls, ActnList, Spin, ExtDlgs, FileUtil, IniFiles,
-  lazutf8, LCLIntf, TypInfo, CheckAndRepairForm;
+  lazutf8, process, UTF8Process, LCLIntf, TypInfo, CheckAndRepairForm;
 
 const
   Version: string = '2.2.5';
@@ -61,6 +61,8 @@ type
     executable_edit: TLabeledEdit;
     MenuItem1: TMenuItem;
     mi_update_cfg: TMenuItem;
+    Process1: TProcessUTF8;
+    SomeProc: TProcessUTF8;
     user_edit: TLabeledEdit;
     pass_edit: TLabeledEdit;
     macros_list: TListBox;
@@ -94,8 +96,6 @@ type
     MenuItem9: TMenuItem;
 
     OpenDialog1: TOpenDialog;
-    Process1: TProcess;
-    SomeProc: TProcess;
     SelectDirectoryDialog1: TSelectDirectoryDialog;
     bakcount_edit: TSpinEdit;
     pagesize_edit: TSpinEdit;
@@ -312,8 +312,7 @@ begin
     begin
       msg := 'Установка обновления';
       AddLog(LogFile, Format('%s: "%s"', [msg, param]));
-
-      if (param = '') or (not run_1c('DESIGNER', ['/UpdateCfg', UTF8ToWinCP(param)])) then
+      if (param = '') or (not run_1c('DESIGNER', ['/UpdateCfg', param])) then
         raise Exception.Create('Ошибка обновления!');
       macros_list.ClearSelection;
     end;
@@ -335,7 +334,7 @@ begin
         FormatDateTime('dd.mm.yyyy_hh.nn.ss', Now()) + '.dt';
       AddLog(LogFile, Format('%s: "%s"', [msg, fn]));
       ForceDirectories(ExtractFileDir(fn));
-      if not run_1c('DESIGNER', ['/DumpIB', UTF8ToWinCP(fn)]) then
+      if not run_1c('DESIGNER', ['/DumpIB', fn]) then
         raise Exception.Create(msg + ' не выполнена!');
       msg := msg + ' завершена!';
       AddLog(LogFile, msg);
@@ -346,7 +345,7 @@ begin
     begin
       msg := 'Загрузка информационной базы';
       AddLog(LogFile, Format('%s "%s"', [msg, param]));
-      if (param = '') or (not run_1c('DESIGNER', ['/DumpIB', UTF8ToWinCP(param)])) then
+      if (param = '') or (not run_1c('DESIGNER', ['/DumpIB', param])) then
         raise Exception.Create(msg + ' завершена с ошибкой!');
       msg := msg + ' успешно завершено!';
       AddLog(LogFile, msg);
@@ -359,7 +358,7 @@ begin
         FormatDateTime('dd.mm.yyyy_hh.nn.ss', Now()) + '.cf';
       AddLog(LogFile, Format('%s: "%s"', [msg, fn]));
       ForceDirectories(ExtractFileDir(fn));
-      if not run_1c('DESIGNER', ['/DumpCFG', UTF8ToWinCP(fn)]) then
+      if not run_1c('DESIGNER', ['/DumpCFG', fn]) then
         raise Exception.Create('Кофигурация не выгружена!');
       msg := 'Кофигурация успешно выгружена!';
       AddLog(LogFile, msg);
@@ -373,12 +372,11 @@ begin
       setlength(_params, 0);
       SetLength(_params, 3);
       _params[0] := '/LoadCFG';
-      _params[1] := UTF8ToWinCP(param);
+      _params[1] := param;
       if ExtractFileExt(param) = '.cfe' then
       begin
         msg := 'Загрузка расширения';
-        _params[2] := '-Extension"' + Utf8ToWinCP(StringReplace(ExtractFileName(param), '.cfe', '',
-          [rfReplaceAll, rfIgnoreCase])) + '"';
+        _params[2] := '-Extension"' + StringReplace(ExtractFileName(param), '.cfe', '', [rfReplaceAll, rfIgnoreCase]) + '"';
       end;
       if (param = '') or (not run_1c('DESIGNER', _params)) then
         raise Exception.Create('Ошибка ' + msg + '!');
@@ -429,6 +427,7 @@ begin
       msg := msg + ' успешно завершен!';
       AddLog(LogFile, msg);
     end;
+
     ba_integrity:
     begin
       msg := 'Восстановление структуры информационной базы';
@@ -438,6 +437,7 @@ begin
       msg := msg + ' успешно завершено!';
       AddLog(LogFile, msg);
     end;
+
     ba_physical:
     begin
       msg := 'Восстановление физической целостности';
@@ -447,6 +447,7 @@ begin
       msg := msg + ' успешно завершено!';
       AddLog(LogFile, msg);
     end;
+
     ba_cache:
     begin
       msg := 'Очистка кэша';
@@ -456,6 +457,7 @@ begin
       msg := msg + ' успешно завершена!';
       AddLog(LogFile, msg);
     end;
+
     ba_convert:
     begin
       msg := 'Конвертация файловой ИБ в новый формат';
@@ -465,6 +467,7 @@ begin
       msg := msg + ' успешно завершена!';
       AddLog(LogFile, msg);
     end;
+
     ba_journal:
     begin
       msg := 'Сокращение журнала регистрации';
@@ -526,10 +529,10 @@ begin
     Add('/DisableStartupDialogs');
     Add('/DisableSplash');
     AddStrings(params);
-    Add('/F"' + UTF8ToWinCP(basepath_edit.Text) + '"');
-    Add('/N"' + UTF8ToWinCP(user_edit.Text) + '"');
-    Add('/P"' + UTF8ToWinCP(pass_edit.Text) + '"');
-    Add('/Out "' + UTF8ToWinCP(LogFile) + '" -NoTruncate');
+    Add('/F"' + basepath_edit.Text + '"');
+    Add('/N"' + user_edit.Text + '"');
+    Add('/P"' + pass_edit.Text + '"');
+    Add('/Out "' + LogFile + '" -NoTruncate');
   end;
   Process1.Execute;
   Result := Process1.ExitStatus = 0;
@@ -545,29 +548,29 @@ begin
   Result:=True;
   fn := IncludeTrailingPathDelimiter(ExpandFileName(bakpath_edit.Text)) + date + '.lgd';
   AddLog(LogFile, 'Backup: "' + fn + '"');
-  run_1c('DESIGNER', ['/ReduceEventLogSize ' + date, '-saveAs"' + Utf8ToWinCP(fn) + '"']);
+  run_1c('DESIGNER', ['/ReduceEventLogSize ' + date, '-saveAs"' + fn + '"']);
 
   SomeProc.CurrentDirectory := ExtractFilePath(ParamStr(0));
   {$IFDEF MSWINDOWS}
-  SomeProc.Executable := 'sqlite3.exe';
+  SomeProc.Executable := FindFilenameOfCmd('sqlite3.exe');
   {$ENDIF}
   {$IFDEF UNIX}
-  SomeProc.Executable := 'sqlite3';
+  SomeProc.Executable := FindFilenameOfCmd('sqlite3');
   {$ENDIF}
-  //if FileExists(SomeProc.Executable) then
-  //begin
+  if FileExists(SomeProc.Executable) then
+  begin
     SomeProc.Options := [poWaitOnExit];
     SomeProc.ShowWindow := swoHIDE;
     with SomeProc.Parameters do
     begin
       Clear();
-      Add(Utf8ToWinCP(IncludeTrailingPathDelimiter(basepath_edit.Text) + '1Cv8Log' + PathDelim + '1Cv8.lgd'));
+      Add(IncludeTrailingPathDelimiter(basepath_edit.Text) + '1Cv8Log' + PathDelim + '1Cv8.lgd');
       Add('vacuum');
     end;
     SomeProc.Execute;
-  //end
-  //else
-    //AddLog(LogFile, 'Отсутствует: "' + SomeProc.Executable + '"');
+  end
+  else
+    AddLog(LogFile, 'Отсутствует: "' + SomeProc.Executable + '"');
 
 end;
 
@@ -615,7 +618,7 @@ begin
       Add('--convert');
       Add('--format=8.3.8');
       Add('--page=' + IntToStr(pagesize_edit.Value) + 'k');
-      Add(Utf8ToWinCP(base_file));
+      Add(base_file);
     end;
     SomeProc.Execute;
   end
