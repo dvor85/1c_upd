@@ -529,7 +529,10 @@ begin
     Add('/DisableStartupDialogs');
     Add('/DisableSplash');
     AddStrings(params);
-    Add('/F"' + basepath_edit.Text + '"');
+    if string(basepath_edit.Text).StartsWith('http', True) then
+      Add('/WS"' + basepath_edit.Text + '"')
+    else
+      Add('/F"' + basepath_edit.Text + '"');
     Add('/N"' + user_edit.Text + '"');
     Add('/P"' + pass_edit.Text + '"');
     Add('/Out "' + LogFile + '" -NoTruncate');
@@ -545,7 +548,7 @@ function TForm1.ReduceEventLogSize(date: string): boolean;
 var
   fn: string;
 begin
-  Result:=True;
+  Result := True;
   fn := IncludeTrailingPathDelimiter(ExpandFileName(bakpath_edit.Text)) + date + '.lgd';
   AddLog(LogFile, 'Backup: "' + fn + '"');
   run_1c('DESIGNER', ['/ReduceEventLogSize ' + date, '-saveAs"' + fn + '"']);
@@ -641,7 +644,7 @@ begin
   {$ENDIF}
   {$IFDEF UNIX}
   envs := TStringArray.Create(GetEnvironmentVariableUTF8('home'));
-  paths := TStringArray.Create('.1cv8' + PathDelim +'1C', '.1cv82' + PathDelim +'1C');
+  paths := TStringArray.Create('.1cv8' + PathDelim + '1C', '.1cv82' + PathDelim + '1C');
   {$ENDIF}
 
   for i := 0 to length(envs) - 1 do
