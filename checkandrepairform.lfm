@@ -1,20 +1,19 @@
 object CheckAndRepairF: TCheckAndRepairF
   Left = 925
-  Height = 239
+  Height = 205
   Top = 270
-  Width = 389
+  Width = 382
   BorderStyle = bsDialog
   Caption = 'Тестирование и исправление'
-  ClientHeight = 239
-  ClientWidth = 389
-  DesignTimePPI = 115
+  ClientHeight = 205
+  ClientWidth = 382
   Position = poOwnerFormCenter
-  LCLVersion = '2.0.8.0'
+  LCLVersion = '2.0.12.0'
   object CheckGroup1: TCheckGroup
     Left = 0
-    Height = 176
+    Height = 147
     Top = 0
-    Width = 389
+    Width = 382
     Align = alTop
     AutoFill = True
     Caption = 'Настройки тестирования'
@@ -26,8 +25,8 @@ object CheckAndRepairF: TCheckAndRepairF
     ChildSizing.ShrinkVertical = crsScaleChilds
     ChildSizing.Layout = cclLeftToRightThenTopToBottom
     ChildSizing.ControlsPerLine = 1
-    ClientHeight = 152
-    ClientWidth = 385
+    ClientHeight = 130
+    ClientWidth = 380
     Items.Strings = (
       'Реиндексация'
       'Проверка логической целостности'
@@ -36,29 +35,32 @@ object CheckAndRepairF: TCheckAndRepairF
       'Сжатие таблиц'
       'Реструктуризация таблиц информационной базы'
     )
+    ParentFont = False
     TabOrder = 0
     Data = {
       06000000020202020302
     }
   end
   object Button1: TButton
-    Left = 16
+    Left = 8
     Height = 30
-    Top = 192
+    Top = 160
     Width = 90
     Align = alCustom
     Caption = 'Ок'
     ModalResult = 1
+    ParentFont = False
     TabOrder = 1
   end
   object Button2: TButton
     Left = 280
     Height = 30
-    Top = 192
+    Top = 160
     Width = 90
     Align = alCustom
     Caption = 'Отмена'
     ModalResult = 2
+    ParentFont = False
     TabOrder = 2
   end
 end

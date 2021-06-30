@@ -20,4 +20,3 @@ begin
   Application.CreateForm(TCheckAndRepairF, CheckAndRepairF);
   Application.Run;
 end.
-

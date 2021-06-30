@@ -323,7 +323,7 @@ begin
       AddLog(LogFile, msg);
       if not run_1c('DESIGNER', ['/UpdateDBCfg']) then
         raise Exception.Create(msg + ' не выполнена!');
-      msg := 'Выполнение макроса успешно завершено!';
+      msg := msg + ' успешно завершено!';
       AddLog(LogFile, msg);
     end;
 
@@ -345,7 +345,7 @@ begin
     begin
       msg := 'Загрузка информационной базы';
       AddLog(LogFile, Format('%s "%s"', [msg, param]));
-      if (param = '') or (not run_1c('DESIGNER', ['/DumpIB', param])) then
+      if (param = '') or (not run_1c('DESIGNER', ['/RestoreIB', param])) then
         raise Exception.Create(msg + ' завершена с ошибкой!');
       msg := msg + ' успешно завершено!';
       AddLog(LogFile, msg);
