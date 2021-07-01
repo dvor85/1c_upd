@@ -8,8 +8,8 @@
       <Unit0>
         <Filename Value="upd_1c.lpr"/>
         <IsPartOfProject Value="True"/>
-        <CursorPos Y="22"/>
-        <UsageCount Value="137"/>
+        <CursorPos X="19" Y="3"/>
+        <UsageCount Value="138"/>
         <Loaded Value="True"/>
       </Unit0>
       <Unit1>
@@ -19,10 +19,10 @@
         <HasResources Value="True"/>
         <ResourceBaseClass Value="Form"/>
         <IsVisibleTab Value="True"/>
-        <EditorIndex Value="2"/>
-        <TopLine Value="329"/>
-        <CursorPos X="60" Y="348"/>
-        <UsageCount Value="137"/>
+        <EditorIndex Value="1"/>
+        <TopLine Value="177"/>
+        <CursorPos X="7" Y="200"/>
+        <UsageCount Value="138"/>
         <Loaded Value="True"/>
         <LoadedDesigner Value="True"/>
       </Unit1>
@@ -33,11 +33,9 @@
         <HasResources Value="True"/>
         <ResourceBaseClass Value="Form"/>
         <UnitName Value="CheckAndRepairForm"/>
-        <EditorIndex Value="1"/>
+        <EditorIndex Value="-1"/>
         <CursorPos X="49" Y="19"/>
-        <UsageCount Value="68"/>
-        <Loaded Value="True"/>
-        <LoadedDesigner Value="True"/>
+        <UsageCount Value="69"/>
       </Unit2>
       <Unit3>
         <Filename Value="D:\lazarus\fpc\2.6.4\source\rtl\inc\objpash.inc"/>
@@ -245,7 +243,7 @@
         <UsageCount Value="10"/>
       </Unit31>
       <Unit32>
-        <Filename Value="..\..\..\..\usr\lib\lazarus\2.0.6\components\lazutils\lazutf8.pas"/>
+        <Filename Value="D:\usr\lib\lazarus\2.0.6\components\lazutils\lazutf8.pas"/>
         <UnitName Value="LazUTF8"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="67"/>
@@ -253,7 +251,7 @@
         <UsageCount Value="10"/>
       </Unit32>
       <Unit33>
-        <Filename Value="..\..\..\..\usr\lib\lazarus\2.0.6\components\lazutils\utf8process.pp"/>
+        <Filename Value="D:\usr\lib\lazarus\2.0.6\components\lazutils\utf8process.pp"/>
         <UnitName Value="UTF8Process"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="181"/>
@@ -261,7 +259,7 @@
         <UsageCount Value="13"/>
       </Unit33>
       <Unit34>
-        <Filename Value="..\..\..\..\usr\lib\lazarus\2.0.6\components\lazutils\fileutil.pas"/>
+        <Filename Value="D:\usr\lib\lazarus\2.0.6\components\lazutils\fileutil.pas"/>
         <UnitName Value="FileUtil"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="191"/>
@@ -269,7 +267,7 @@
         <UsageCount Value="13"/>
       </Unit34>
       <Unit35>
-        <Filename Value="..\..\..\..\usr\lib\lazarus\2.0.6\components\lazutils\lazfileutils.pas"/>
+        <Filename Value="D:\usr\lib\lazarus\2.0.6\components\lazutils\lazfileutils.pas"/>
         <UnitName Value="LazFileUtils"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="702"/>
@@ -277,7 +275,7 @@
         <UsageCount Value="13"/>
       </Unit35>
       <Unit36>
-        <Filename Value="..\..\..\..\usr\share\fpcsrc\3.0.4\rtl\unix\unix.pp"/>
+        <Filename Value="D:\usr\share\fpcsrc\3.0.4\rtl\unix\unix.pp"/>
         <UnitName Value="Unix"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="567"/>
@@ -285,7 +283,7 @@
         <UsageCount Value="13"/>
       </Unit36>
       <Unit37>
-        <Filename Value="..\..\..\..\usr\lib\lazarus\2.0.6\lcl\extctrls.pp"/>
+        <Filename Value="D:\usr\lib\lazarus\2.0.6\lcl\extctrls.pp"/>
         <UnitName Value="ExtCtrls"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="997"/>
@@ -293,7 +291,7 @@
         <UsageCount Value="10"/>
       </Unit37>
       <Unit38>
-        <Filename Value="..\..\..\..\usr\lib\lazarus\2.0.6\lcl\stdctrls.pp"/>
+        <Filename Value="D:\usr\lib\lazarus\2.0.6\lcl\stdctrls.pp"/>
         <UnitName Value="StdCtrls"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="825"/>
@@ -301,7 +299,7 @@
         <UsageCount Value="10"/>
       </Unit38>
       <Unit39>
-        <Filename Value="..\..\..\..\usr\lib\lazarus\2.0.6\lcl\controls.pp"/>
+        <Filename Value="D:\usr\lib\lazarus\2.0.6\lcl\controls.pp"/>
         <UnitName Value="Controls"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="151"/>
@@ -309,7 +307,7 @@
         <UsageCount Value="10"/>
       </Unit39>
       <Unit40>
-        <Filename Value="..\..\..\..\usr\lib\lazarus\2.0.6\lcl\lcltype.pp"/>
+        <Filename Value="D:\usr\lib\lazarus\2.0.6\lcl\lcltype.pp"/>
         <UnitName Value="LCLType"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="48"/>
@@ -317,7 +315,7 @@
         <UsageCount Value="10"/>
       </Unit40>
     </Units>
-    <JumpHistory Count="28" HistoryIndex="27">
+    <JumpHistory Count="29" HistoryIndex="28">
       <Position1>
         <Filename Value="main.pas"/>
         <Caret Line="618" Column="21" TopLine="588"/>
@@ -395,41 +393,45 @@
         <Caret Line="519" Column="5" TopLine="515"/>
       </Position19>
       <Position20>
-        <Filename Value="checkandrepairform.pas"/>
-        <Caret Line="19" Column="49"/>
+        <Filename Value="upd_1c.lpr"/>
+        <Caret Line="20" Column="46"/>
       </Position20>
       <Position21>
         <Filename Value="upd_1c.lpr"/>
-        <Caret Line="20" Column="46"/>
+        <Caret Line="22"/>
       </Position21>
       <Position22>
         <Filename Value="upd_1c.lpr"/>
-        <Caret Line="22"/>
+        <Caret Line="21" Column="19"/>
       </Position22>
       <Position23>
         <Filename Value="upd_1c.lpr"/>
-        <Caret Line="21" Column="19"/>
+        <Caret Line="14" Column="54"/>
       </Position23>
       <Position24>
         <Filename Value="upd_1c.lpr"/>
-        <Caret Line="14" Column="54"/>
+        <Caret Line="22"/>
       </Position24>
       <Position25>
-        <Filename Value="upd_1c.lpr"/>
-        <Caret Line="22"/>
+        <Filename Value="main.pas"/>
+        <Caret Line="108" Column="46" TopLine="91"/>
       </Position25>
       <Position26>
         <Filename Value="main.pas"/>
-        <Caret Line="108" Column="46" TopLine="91"/>
+        <Caret Line="112" Column="43" TopLine="94"/>
       </Position26>
       <Position27>
         <Filename Value="main.pas"/>
-        <Caret Line="112" Column="43" TopLine="94"/>
+        <Caret Line="113" Column="63" TopLine="95"/>
       </Position27>
       <Position28>
         <Filename Value="main.pas"/>
-        <Caret Line="113" Column="63" TopLine="95"/>
+        <Caret Line="348" Column="51" TopLine="344"/>
       </Position28>
+      <Position29>
+        <Filename Value="main.pas"/>
+        <Caret Line="110" Column="42" TopLine="110"/>
+      </Position29>
     </JumpHistory>
     <RunParams>
       <FormatVersion Value="2"/>

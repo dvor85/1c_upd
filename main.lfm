@@ -1,10 +1,10 @@
 object Form1: TForm1
   Left = 396
-  Height = 529
+  Height = 537
   Top = 196
   Width = 821
   Caption = 'Обновление 1с'
-  ClientHeight = 505
+  ClientHeight = 513
   ClientWidth = 821
   Menu = MainMenu1
   OnClose = FormClose
@@ -141,12 +141,12 @@ object Form1: TForm1
   end
   object GroupBox2: TGroupBox
     Left = 0
-    Height = 322
+    Height = 347
     Top = 166
     Width = 821
     Align = alClient
     Caption = 'Команды'
-    ClientHeight = 305
+    ClientHeight = 330
     ClientWidth = 819
     ParentFont = False
     TabOrder = 2
@@ -154,14 +154,14 @@ object Form1: TForm1
       Cursor = crVSplit
       Left = 0
       Height = 4
-      Top = 196
+      Top = 221
       Width = 819
       Align = alBottom
       ResizeAnchor = akBottom
     end
     object macros_list: TListBox
       Left = 0
-      Height = 196
+      Height = 221
       Top = 0
       Width = 819
       Align = alClient
@@ -179,7 +179,7 @@ object Form1: TForm1
     object GroupBox5: TGroupBox
       Left = 0
       Height = 105
-      Top = 200
+      Top = 225
       Width = 819
       Align = alBottom
       Caption = 'Логи'
@@ -273,14 +273,6 @@ object Form1: TForm1
       TabOrder = 1
     end
   end
-  object StatusBar1: TStatusBar
-    Left = 0
-    Height = 17
-    Top = 488
-    Width = 821
-    Panels = <>
-    ParentFont = False
-  end
   object GroupBox4: TGroupBox
     Left = 0
     Height = 46
@@ -291,7 +283,7 @@ object Form1: TForm1
     ClientHeight = 29
     ClientWidth = 819
     ParentFont = False
-    TabOrder = 4
+    TabOrder = 3
     object bakpath_edit: TLabeledEdit
       Left = 112
       Height = 27

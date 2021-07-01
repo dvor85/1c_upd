@@ -100,7 +100,6 @@ type
     bakcount_edit: TSpinEdit;
     pagesize_edit: TSpinEdit;
     Splitter1: TSplitter;
-    StatusBar1: TStatusBar;
 
     procedure BitBtn1Click(Sender: TObject);
     procedure BitBtn2Click(Sender: TObject);
@@ -198,7 +197,7 @@ begin
       F.Position := F.Size;
       F.Write(PStr^, LengthLogString);
       Form1.logs_memo.Lines.AddText(Str);
-      //SendMessage(Form1.Memo1.Handle, EM_LINESCROLL, 0, Form1.Memo1.Lines.Count);
+      Form1.logs_memo.SelStart:=MaxInt;
     except
       MessageDlg(Form1.Caption, LogString, mtError, [mbYes], 0);
       Exit;
@@ -297,6 +296,8 @@ begin
     begin
       for i := 0 to macros_list.Count - 1 do
       begin
+        macros_list.ClearSelection;
+        macros_list.Selected[i] := True;
         _params := macros_list.Items[i].Split(['(', ')']);
         _param := '';
         if length(_params) > 1 then
@@ -735,7 +736,7 @@ begin
     end;
     run_non_interactive := run_non_interactive or (ParamStr(i) = '-r');
   end;
-  StatusBar1.SimpleText := AnsiToUtf8(iniPath);
+  Caption := Format('%s: "%s"', ['upd_1c', iniPath]);
   ini := TIniFile.Create(iniPath);
   LogFile := 'logs' + PathDelim + ChangeFileExt(ExtractFileName(iniPath), '.log');
   mi_reload_config.Click();
