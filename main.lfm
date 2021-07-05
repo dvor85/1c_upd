@@ -1,7 +1,7 @@
 object Form1: TForm1
-  Left = 396
+  Left = 310
   Height = 537
-  Top = 196
+  Top = 246
   Width = 821
   Caption = 'Обновление 1с'
   ClientHeight = 513
@@ -376,7 +376,7 @@ object Form1: TForm1
     top = 327
   end
   object OpenDialog1: TOpenDialog
-    Filter = '*.cfu;*.cf|*.cfu;*.cf|*.exe|*.exe|*.cf;*.cfe|*.cf;*.cfe|*.dt|*.dt|all|*'
+    Filter = '*.cfu;*.cf|*.cfu;*.cf|*.exe|*.exe|*.cf;*.cfe|*.cf;*.cfe|*.dt|*.dt|all|*|*.cf;*.dt|*.cf;*.dt'
     Options = [ofFileMustExist, ofEnableSizing, ofViewDetail]
     left = 260
     top = 327
@@ -443,6 +443,10 @@ object Form1: TForm1
         object mi_loadcfg: TMenuItem
           Caption = 'Загрузить конфигурацию/расширение'
           OnClick = mi_loadcfgClick
+        end
+        object mi_createcfg: TMenuItem
+          Caption = 'Создать'
+          OnClick = mi_createcfgClick
         end
       end
     end

@@ -1,5 +1,6 @@
 program upd_1c;
 
+{$SMARTLINK ON}
 {$mode objfpc}{$H+}
 {$DEFINE UseCThreads}
 

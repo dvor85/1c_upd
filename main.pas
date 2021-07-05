@@ -2,6 +2,7 @@ unit main;
 
 {$mode objfpc}{$H+}
 
+
 interface
 
 uses
@@ -28,7 +29,7 @@ type
 
   TBaseAction = (ba_update, ba_updatecfg, ba_dumpib, ba_restoreib, ba_dumpcfg,
     ba_loadcfg, ba_check, ba_enterprise, ba_config, ba_cache, ba_journal, ba_integrity, ba_physical,
-    ba_macro, ba_convert);
+    ba_macro, ba_convert, ba_createcfg);
 
   TMyThread = class(TThread)
     FBaseAction: TBaseAction;
@@ -110,6 +111,7 @@ type
     procedure executable_editChange(Sender: TObject);
     procedure macros_listDragDrop(Sender, Source: TObject; X, Y: integer);
     procedure macros_listDragOver(Sender, Source: TObject; X, Y: integer; State: TDragState; var Accept: boolean);
+    procedure mi_createcfgClick(Sender: TObject);
     procedure mi_dumpibClick(Sender: TObject);
     procedure mi_loadibClick(Sender: TObject);
     procedure mi_loadcfgClick(Sender: TObject);
@@ -146,7 +148,9 @@ type
     procedure SetComponentsEnabled(State: boolean);
     procedure CustomExceptionHandler(Sender: TObject; E: Exception);
     function run_1c(mode: string; params: array of string): boolean;
+    function create_1c(params: array of string): boolean;
 
+    function GetInitialDir(): string;
     function ClearCache(): boolean;
     function ReduceEventLogSize(date: string): boolean;
     function CheckPhysicalIntegrity(): boolean;
@@ -197,7 +201,7 @@ begin
       F.Position := F.Size;
       F.Write(PStr^, LengthLogString);
       Form1.logs_memo.Lines.AddText(Str);
-      Form1.logs_memo.SelStart:=MaxInt;
+      Form1.logs_memo.SelStart := MaxInt;
     except
       MessageDlg(Form1.Caption, LogString, mtError, [mbYes], 0);
       Exit;
@@ -385,6 +389,16 @@ begin
       AddLog(LogFile, msg);
     end;
 
+    ba_createcfg:
+    begin
+      msg := 'Создание конфигурации';
+      AddLog(LogFile, Format('%s из "%s"', [msg, param]));
+      if not create_1c(['/UseTemplate', param]) then
+        raise Exception.Create('Ошибка ' + msg + '!');
+      msg := msg + ' успешно завершено!';
+      AddLog(LogFile, msg);
+    end;
+
     ba_check:
     begin
       msg := 'Тестирование и исправление базы';
@@ -400,7 +414,7 @@ begin
           '5': _params[i] := '-Rebuild';
         end;
       setlength(_params, length(_params) + 1);
-      _params[length(_params)] := _params[0];
+      _params[length(_params) - 1] := _params[0];
       _params[0] := '/IBCheckAndRepair';
 
       if not run_1c('DESIGNER', _params) then
@@ -518,6 +532,26 @@ begin
   macros_list.Enabled := State;
   bakcount_edit.Enabled := State;
   pagesize_edit.Enabled := State;
+end;
+
+function TForm1.create_1c(params: array of string): boolean;
+var
+  fn: string;
+begin
+  fn := 'logs' + PathDelim + 'test.out';
+  with Process1.Parameters do
+  begin
+    Clear();
+    Add('CREATEINFOBASE');
+    Add(Format('File="%s";DBFormat=%s;DBPageSize=%s', [basepath_edit.Text, '8.3.8', IntToStr(pagesize_edit.Value) + 'k']));
+    Add('/DumpResult');
+    Add(fn);
+    AddStrings(params);
+  end;
+
+  Process1.Execute;
+  Result := pos('0', ReadFileToString(fn)) > -1;
+  DeleteFile(fn);
 end;
 
 function TForm1.run_1c(mode: string; params: array of string): boolean;
@@ -773,7 +807,16 @@ begin
   Accept := (Sender = Source);
 end;
 
-
+procedure TForm1.mi_createcfgClick(Sender: TObject);
+begin
+  OpenDialog1.InitialDir := bakpath_edit.Text;
+  OpenDialog1.FilterIndex := 6;
+  if OpenDialog1.Execute then
+    if (Sender as TMenuItem).Tag = 1 then
+      AddMacrosCommand(Sender, ba_createcfg, OpenDialog1.FileName)
+    else
+      MyThread := TMyThread.Create(ba_createcfg, OpenDialog1.FileName);
+end;
 
 procedure TForm1.BitBtn1Click(Sender: TObject);
 begin
@@ -890,11 +933,30 @@ begin
     MyThread := TMyThread.Create(ba_config);
 end;
 
-
+function TForm1.GetInitialDir(): string;
+var
+  i, _action: integer;
+  _params: TStringArray;
+begin
+  Result := '';
+  for i := macros_list.Count - 1 downto 0 do
+  begin
+    _action := PtrInt(macros_list.Items.Objects[i]);
+    if TbaseAction(_action) = ba_update then
+    begin
+      _params := macros_list.Items[i].Split(['(', ')']);
+      if length(_params) > 1 then
+      begin
+        Result := ExtractFileDir(_params[1]);
+        Exit;
+      end;
+    end;
+  end;
+end;
 
 procedure TForm1.mi_updateClick(Sender: TObject);
 begin
-  OpenDialog1.InitialDir := bakpath_edit.Text;
+  OpenDialog1.InitialDir := GetInitialDir();
   OpenDialog1.FilterIndex := 1;
   if OpenDialog1.Execute then
     if (Sender as TMenuItem).Tag = 1 then
