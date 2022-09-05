@@ -8,10 +8,10 @@ interface
 uses
   Classes, SysUtils, Forms, Controls, Dialogs, ExtCtrls, StdCtrls,
   Buttons, Menus, ComCtrls, ActnList, Spin, ExtDlgs, FileUtil, IniFiles,
-  lazutf8, process, UTF8Process, LCLIntf, TypInfo, CheckAndRepairForm;
+  lazutf8, process, UTF8Process, lclintf, TypInfo, CheckAndRepairForm;
 
 const
-  Version: string = '2.2.5';
+  Version: string = '2.3.5';
   SectionMain: string = 'Main';
   KeyExecutable: string = 'Executable';
   SectionBase: string = 'Base';
@@ -31,14 +31,31 @@ type
     ba_loadcfg, ba_check, ba_enterprise, ba_config, ba_cache, ba_journal, ba_integrity, ba_physical,
     ba_macro, ba_convert, ba_createcfg);
 
+  TShowStatusEvent = procedure(Status: string) of object;
+
   TMyThread = class(TThread)
-    FBaseAction: TBaseAction;
+  private
+    FOnShowStatus: TShowStatusEvent;
     FParam: string;
-    constructor Create(BaseAction: TBaseAction; Param: string = ''); overload;
+    FBaseAction: TBaseAction;
+    FState: boolean;
+    FMsg: string;
+    procedure ShowStatus;
+    procedure SetComponentsEnabled;
   protected
     procedure Execute; override;
   public
+    constructor Create(BaseAction: TBaseAction; Param: string = ''); overload;
+    property OnShowStatus: TShowStatusEvent read FOnShowStatus write FOnShowStatus;
     procedure OnMyTerminate(Sender: TObject);
+    procedure ExecuteBaseAction(baseAction: TBaseAction; param: string);
+    function run_1c(mode: string; params: array of string): boolean;
+    function create_1c(params: array of string): boolean;
+    function ReduceEventLogSize(date: string): boolean;
+    function CheckPhysicalIntegrity(): boolean;
+    function ConvertFileBase(): boolean;
+    function ClearCache(): boolean;
+    procedure DeleteOld(dir, mask: string; needed: integer);
   end;
 
   { TForm1 }
@@ -144,18 +161,15 @@ type
     progress: integer;
     procedure populateMacrosMenu(src, dst: TMenuItem);
     function GetIBCheckParams(): string;
-    procedure ExecuteBaseAction(baseAction: TBaseAction; param: string);
-    procedure SetComponentsEnabled(State: boolean);
     procedure CustomExceptionHandler(Sender: TObject; E: Exception);
-    function run_1c(mode: string; params: array of string): boolean;
-    function create_1c(params: array of string): boolean;
+
 
     function GetInitialDir(): string;
-    function ClearCache(): boolean;
-    function ReduceEventLogSize(date: string): boolean;
-    function CheckPhysicalIntegrity(): boolean;
-    function ConvertFileBase(): boolean;
+
+
     function AddMacrosCommand(Sender: TObject; baseAction: TBaseAction; param: string = ''): boolean;
+    procedure AddLog(msg: string);
+
   public
     { public declarations }
   end;
@@ -173,51 +187,14 @@ uses base64;
 
 {$R *.lfm}
 
-procedure AddLog(LogFileName: string; LogString: string);
-var
-  F: TFileStream;
-  PStr: PChar;
-  Str: string;
-  LengthLogString: cardinal;
-begin
-  Str := DateTimeToStr(Now()) + ': ' + LogString + #13#10;
-  LengthLogString := Length(Str);
-  try
-    if FileExists(LogFileName) then
-      F := TFileStream.Create(LogFileName, fmOpenWrite)
-    else
-    begin
-      ForceDirectories(ExtractFileDir(LogFileName));
-      F := TFileStream.Create(LogFileName, fmCreate);
-    end;
-  except
-    MessageDlg(Form1.Caption, LogString, mtError, [mbYes], 0);
-    Exit;
-  end;
-  PStr := StrAlloc(LengthLogString + 1);
-  try
-    try
-      StrPCopy(PStr, Str);
-      F.Position := F.Size;
-      F.Write(PStr^, LengthLogString);
-      Form1.logs_memo.Lines.AddText(Str);
-      Form1.logs_memo.SelStart := MaxInt;
-    except
-      MessageDlg(Form1.Caption, LogString, mtError, [mbYes], 0);
-      Exit;
-    end;
-  finally
-    StrDispose(PStr);
-    F.Free;
-  end;
-end;
+
 
 function SortByCTime(List: TStringList; Index1, Index2: integer): integer;
 begin
   Result := FileAge(List[index2]) - FileAge(List[index1]);
 end;
 
-procedure DeleteOld(dir, mask: string; needed: integer);
+procedure TMyThread.DeleteOld(dir, mask: string; needed: integer);
 //Удалить старые архивы
 var
   flist: TStringList;
@@ -230,7 +207,10 @@ begin
     for i := needed to flist.Count - 1 do
     begin
       if DeleteFile(PChar(flist[i])) then
-        AddLog(Form1.LogFile, 'Удаление устаревшего: "' + flist[i] + '"');
+      begin
+        FMsg := 'Удаление устаревшего: "' + flist[i] + '"';
+        Synchronize(@ShowStatus);
+      end;
     end;
   finally
     flist.Free;
@@ -244,10 +224,253 @@ end;
 constructor TMyThread.Create(BaseAction: TBaseAction; Param: string = '');
 begin
   inherited Create(False);
-  FBaseAction := BaseAction;
   FreeOnTerminate := True;
   OnTerminate := @OnMyTerminate;
+  FBaseAction := BaseAction;
   FParam := Param;
+end;
+
+procedure TMyThread.SetComponentsEnabled;
+begin
+  with Form1 do
+  begin
+    bakpath_edit.Enabled := FState;
+    basepath_edit.Enabled := FState;
+    executable_edit.Enabled := FState;
+    user_edit.Enabled := FState;
+    pass_edit.Enabled := FState;
+    BitBtn1.Enabled := FState;
+    BitBtn2.Enabled := FState;
+    BitBtn3.Enabled := FState;
+    macros_list.Enabled := FState;
+    bakcount_edit.Enabled := FState;
+    pagesize_edit.Enabled := FState;
+  end;
+end;
+
+
+
+procedure TMyThread.ExecuteBaseAction(baseAction: TBaseAction; param: string);
+var
+  i, _action: integer;
+  _param, fn, msg: string;
+  _params: TStringArray;
+begin
+  if not Terminated then
+  begin
+    with Form1 do
+    begin
+      case baseAction of
+        ba_macro:
+        begin
+          for i := 0 to macros_list.Count - 1 do
+          begin
+            macros_list.ClearSelection;
+            macros_list.Selected[i] := True;
+            _params := macros_list.Items[i].Split(['(', ')']);
+            _param := '';
+            if length(_params) > 1 then
+              _param := _params[1];
+            _action := PtrInt(macros_list.Items.Objects[i]);
+            ExecuteBaseAction(TbaseAction(_action), _param);
+          end;
+          fmsg := 'Выполнение макроса успешно завершено!';
+          Synchronize(@showstatus);
+        end;
+
+        ba_update:
+        begin
+          msg := 'Установка обновления';
+          fmsg := Format('%s: "%s"', [msg, param]);
+          Synchronize(@showstatus);
+          if (param = '') or (not run_1c('DESIGNER', ['/UpdateCfg', param])) then
+            raise Exception.Create('Ошибка обновления!');
+          macros_list.ClearSelection;
+        end;
+
+        ba_updatecfg:
+        begin
+          fmsg := 'Обновление конфигурации';
+          Synchronize(@showstatus);
+          if not run_1c('DESIGNER', ['/UpdateDBCfg']) then
+            raise Exception.Create(fmsg + ' не выполнена!');
+          fmsg := fmsg + ' успешно завершено!';
+          Synchronize(@showstatus);
+        end;
+
+        ba_dumpib:
+        begin
+          msg := 'Выгрузка информационной базы';
+          fn := IncludeTrailingPathDelimiter(ExpandFileName(bakpath_edit.Text)) +
+            FormatDateTime('dd.mm.yyyy_hh.nn.ss', Now()) + '.dt';
+          fmsg := Format('%s: "%s"', [msg, fn]);
+          Synchronize(@showstatus);
+          ForceDirectories(ExtractFileDir(fn));
+          if not run_1c('DESIGNER', ['/DumpIB', fn]) then
+            raise Exception.Create(msg + ' не выполнена!');
+          fmsg := msg + ' завершена!';
+          Synchronize(@showstatus);
+          DeleteOld(IncludeTrailingPathDelimiter(ExpandFileName(bakpath_edit.Text)), '*.dt', bakcount_edit.Value);
+        end;
+
+        ba_restoreib:
+        begin
+          msg := 'Загрузка информационной базы';
+          fmsg := Format('%s "%s"', [msg, param]);
+          Synchronize(@showstatus);
+          if (param = '') or (not run_1c('DESIGNER', ['/RestoreIB', param])) then
+            raise Exception.Create(msg + ' завершена с ошибкой!');
+          fmsg := msg + ' успешно завершено!';
+          Synchronize(@showstatus);
+        end;
+
+        ba_dumpcfg:
+        begin
+          msg := 'Выгрузка конфигурации';
+          fn := IncludeTrailingPathDelimiter(ExpandFileName(bakpath_edit.Text)) +
+            FormatDateTime('dd.mm.yyyy_hh.nn.ss', Now()) + '.cf';
+          fmsg := Format('%s: "%s"', [msg, fn]);
+          Synchronize(@showstatus);
+          ForceDirectories(ExtractFileDir(fn));
+          if not run_1c('DESIGNER', ['/DumpCFG', fn]) then
+            raise Exception.Create('Кофигурация не выгружена!');
+          fmsg := 'Кофигурация успешно выгружена!';
+          Synchronize(@showstatus);
+          DeleteOld(IncludeTrailingPathDelimiter(ExpandFileName(bakpath_edit.Text)), '*.cf', bakcount_edit.Value);
+        end;
+
+        ba_loadcfg:
+        begin
+          msg := 'Загрузка конфигурации';
+          fmsg := Format('%s "%s"', [msg, param]);
+          Synchronize(@showstatus);
+          setlength(_params, 0);
+          SetLength(_params, 3);
+          _params[0] := '/LoadCFG';
+          _params[1] := param;
+          if ExtractFileExt(param) = '.cfe' then
+          begin
+            msg := 'Загрузка расширения';
+            _params[2] := '-Extension"' + StringReplace(ExtractFileName(param), '.cfe', '', [rfReplaceAll, rfIgnoreCase]) + '"';
+          end;
+          if (param = '') or (not run_1c('DESIGNER', _params)) then
+            raise Exception.Create('Ошибка ' + msg + '!');
+          fmsg := msg + ' успешно завершено!';
+          Synchronize(@showstatus);
+        end;
+
+        ba_createcfg:
+        begin
+          msg := 'Создание конфигурации';
+          fmsg := Format('%s из "%s"', [msg, param]);
+          Synchronize(@showstatus);
+          if not create_1c(['/UseTemplate', param]) then
+            raise Exception.Create('Ошибка ' + msg + '!');
+          fmsg := msg + ' успешно завершено!';
+          Synchronize(@showstatus);
+        end;
+
+        ba_check:
+        begin
+          fmsg := 'Тестирование и исправление базы';
+          Synchronize(@showstatus);
+          _params := param.Split([',']);
+          for i := 0 to length(_params) - 1 do
+            case _params[i] of
+              '0': _params[i] := '-ReIndex';
+              '1': _params[i] := '-LogIntegrity';
+              '2': _params[i] := '-LogAndRefsIntegrity';
+              '3': _params[i] := '-RecalcTotals';
+              '4': _params[i] := '-IBCompression';
+              '5': _params[i] := '-Rebuild';
+            end;
+          setlength(_params, length(_params) + 1);
+          _params[length(_params) - 1] := _params[0];
+          _params[0] := '/IBCheckAndRepair';
+
+          if not run_1c('DESIGNER', _params) then
+            raise Exception.Create(fmsg + ' завершено с ошибкой!');
+          fmsg := fmsg + ' успешно завершено!';
+          Synchronize(@showstatus);
+        end;
+
+        ba_enterprise:
+        begin
+          fmsg := 'Запуск в режиме ENTERPRISE';
+          Synchronize(@showstatus);
+          if not run_1c('ENTERPRISE', []) then
+            raise Exception.Create(fmsg + ' завершен с ошибкой!');
+          fmsg := fmsg + ' успешно завершен!';
+          Synchronize(@showstatus);
+        end;
+
+        ba_config:
+        begin
+          fmsg := 'Запуск в режиме конфигуратора';
+          Synchronize(@showstatus);
+          if not run_1c('DESIGNER', []) then
+            raise Exception.Create(fmsg + ' завершен с ошибкой!');
+          fmsg := fmsg + ' успешно завершен!';
+          Synchronize(@showstatus);
+        end;
+
+        ba_integrity:
+        begin
+          fmsg := 'Восстановление структуры информационной базы';
+          Synchronize(@showstatus);
+          if not run_1c('DESIGNER', ['/IBRestoreIntegrity']) then
+            raise Exception.Create(fmsg + ' завершено с ошибкой!');
+          fmsg := fmsg + ' успешно завершено!';
+          Synchronize(@showstatus);
+        end;
+
+        ba_physical:
+        begin
+          fmsg := 'Восстановление физической целостности';
+          Synchronize(@showstatus);
+          if not CheckPhysicalIntegrity() then
+            raise Exception.Create(fmsg + ' завершено с ошибкой!');
+          fmsg := fmsg + ' успешно завершено!';
+          Synchronize(@showstatus);
+        end;
+
+        ba_cache:
+        begin
+          fmsg := 'Очистка кэша';
+          Synchronize(@showstatus);
+          if not ClearCache() then
+            raise Exception.Create(fmsg + ' завершена с ошибкой!');
+          fmsg := fmsg + ' успешно завершена!';
+          Synchronize(@showstatus);
+        end;
+
+        ba_convert:
+        begin
+          fmsg := 'Конвертация файловой ИБ в новый формат';
+          Synchronize(@showstatus);
+          if not ConvertFileBase() then
+            raise Exception.Create(fmsg + ' завершена с ошибкой!');
+          fmsg := fmsg + ' успешно завершена!';
+          Synchronize(@showstatus);
+        end;
+
+        ba_journal:
+        begin
+          msg := 'Сокращение журнала регистрации';
+          if not param.IsEmpty then
+          begin
+            fmsg := Format('%s "%s"', [msg, param]);
+            Synchronize(@showstatus);
+            if not ReduceEventLogSize(param) then
+              raise Exception.Create(msg + ' завершено с ошибкой!');
+            fmsg := msg + ' успешно завершено!';
+            Synchronize(@showstatus);
+            DeleteOld(IncludeTrailingPathDelimiter(ExpandFileName(bakpath_edit.Text)), '*.lgd', bakcount_edit.Value);
+          end;
+        end;
+      end;
+    end;
+  end;
 end;
 
 procedure TMyThread.OnMyTerminate(Sender: TObject);
@@ -256,249 +479,55 @@ begin
     Form1.Close();
 end;
 
+procedure TMyThread.ShowStatus;
+// this method is executed by the mainthread and can therefore access all GUI elements.
+begin
+  if Assigned(FOnShowStatus) then
+  begin
+    FOnShowStatus(fmsg);
+  end;
+end;
+
 
 procedure TMyThread.Execute;
-var
-  msg: string;
 begin
-  Form1.SetComponentsEnabled(False);
+  FState := False;
+  Synchronize(@SetComponentsEnabled);
   Form1.progress := 0;
   try
     try
       with Form1 do
       begin
         if Process1.Running then
-          raise Exception.Create('Процесс уже запущен, дождитесь окончания!');
+        begin
+          fmsg := 'Процесс уже запущен, дождитесь окончания!';
+          Synchronize(@showstatus);
+          exit;
+        end;
 
         if (Process1.Executable = '') or (basepath_edit.Text = '') then
           raise Exception.Create('Не заполнены необходимые поля!');
+
         ExecuteBaseAction(FBaseAction, FParam);
+        FState := True;
       end;
     except
       on e: Exception do
       begin
-        msg := e.message;
-        AddLog(Form1.LogFile, 'Операция завершена с ошибкой: "' + msg +
-          '". Проверьте ' + ExtractFilePath(ParamStr(0)) + Form1.LogFile);
+        FState := True;
+        Fmsg := 'Операция завершена с ошибкой: "' + e.message +
+          '". Проверьте ' + Form1.LogFile;
+        Synchronize(@showstatus);
       end;
     end;
   finally
-    Form1.SetComponentsEnabled(True);
+    Synchronize(@SetComponentsEnabled);
     self.Terminate;
   end;
 end;
 
 
-procedure TForm1.ExecuteBaseAction(baseAction: TBaseAction; param: string);
-var
-  i, _action: integer;
-  _param, fn, msg: string;
-  _params: TStringArray;
-begin
-  case baseAction of
-    ba_macro:
-    begin
-      for i := 0 to macros_list.Count - 1 do
-      begin
-        macros_list.ClearSelection;
-        macros_list.Selected[i] := True;
-        _params := macros_list.Items[i].Split(['(', ')']);
-        _param := '';
-        if length(_params) > 1 then
-          _param := _params[1];
-        _action := PtrInt(macros_list.Items.Objects[i]);
-        ExecuteBaseAction(TbaseAction(_action), _param);
-      end;
-      msg := 'Выполнение макроса успешно завершено!';
-      AddLog(LogFile, msg);
-    end;
 
-    ba_update:
-    begin
-      msg := 'Установка обновления';
-      AddLog(LogFile, Format('%s: "%s"', [msg, param]));
-      if (param = '') or (not run_1c('DESIGNER', ['/UpdateCfg', param])) then
-        raise Exception.Create('Ошибка обновления!');
-      macros_list.ClearSelection;
-    end;
-
-    ba_updatecfg:
-    begin
-      msg := 'Обновление конфигурации';
-      AddLog(LogFile, msg);
-      if not run_1c('DESIGNER', ['/UpdateDBCfg']) then
-        raise Exception.Create(msg + ' не выполнена!');
-      msg := msg + ' успешно завершено!';
-      AddLog(LogFile, msg);
-    end;
-
-    ba_dumpib:
-    begin
-      msg := 'Выгрузка информационной базы';
-      fn := IncludeTrailingPathDelimiter(ExpandFileName(bakpath_edit.Text)) +
-        FormatDateTime('dd.mm.yyyy_hh.nn.ss', Now()) + '.dt';
-      AddLog(LogFile, Format('%s: "%s"', [msg, fn]));
-      ForceDirectories(ExtractFileDir(fn));
-      if not run_1c('DESIGNER', ['/DumpIB', fn]) then
-        raise Exception.Create(msg + ' не выполнена!');
-      msg := msg + ' завершена!';
-      AddLog(LogFile, msg);
-      DeleteOld(IncludeTrailingPathDelimiter(ExpandFileName(bakpath_edit.Text)), '*.dt', bakcount_edit.Value);
-    end;
-
-    ba_restoreib:
-    begin
-      msg := 'Загрузка информационной базы';
-      AddLog(LogFile, Format('%s "%s"', [msg, param]));
-      if (param = '') or (not run_1c('DESIGNER', ['/RestoreIB', param])) then
-        raise Exception.Create(msg + ' завершена с ошибкой!');
-      msg := msg + ' успешно завершено!';
-      AddLog(LogFile, msg);
-    end;
-
-    ba_dumpcfg:
-    begin
-      msg := 'Выгрузка конфигурации';
-      fn := IncludeTrailingPathDelimiter(ExpandFileName(bakpath_edit.Text)) +
-        FormatDateTime('dd.mm.yyyy_hh.nn.ss', Now()) + '.cf';
-      AddLog(LogFile, Format('%s: "%s"', [msg, fn]));
-      ForceDirectories(ExtractFileDir(fn));
-      if not run_1c('DESIGNER', ['/DumpCFG', fn]) then
-        raise Exception.Create('Кофигурация не выгружена!');
-      msg := 'Кофигурация успешно выгружена!';
-      AddLog(LogFile, msg);
-      DeleteOld(IncludeTrailingPathDelimiter(ExpandFileName(bakpath_edit.Text)), '*.cf', bakcount_edit.Value);
-    end;
-
-    ba_loadcfg:
-    begin
-      msg := 'Загрузка конфигурации';
-      AddLog(LogFile, Format('%s "%s"', [msg, param]));
-      setlength(_params, 0);
-      SetLength(_params, 3);
-      _params[0] := '/LoadCFG';
-      _params[1] := param;
-      if ExtractFileExt(param) = '.cfe' then
-      begin
-        msg := 'Загрузка расширения';
-        _params[2] := '-Extension"' + StringReplace(ExtractFileName(param), '.cfe', '', [rfReplaceAll, rfIgnoreCase]) + '"';
-      end;
-      if (param = '') or (not run_1c('DESIGNER', _params)) then
-        raise Exception.Create('Ошибка ' + msg + '!');
-      msg := msg + ' успешно завершено!';
-      AddLog(LogFile, msg);
-    end;
-
-    ba_createcfg:
-    begin
-      msg := 'Создание конфигурации';
-      AddLog(LogFile, Format('%s из "%s"', [msg, param]));
-      if not create_1c(['/UseTemplate', param]) then
-        raise Exception.Create('Ошибка ' + msg + '!');
-      msg := msg + ' успешно завершено!';
-      AddLog(LogFile, msg);
-    end;
-
-    ba_check:
-    begin
-      msg := 'Тестирование и исправление базы';
-      AddLog(LogFile, msg);
-      _params := param.Split([',']);
-      for i := 0 to length(_params) - 1 do
-        case _params[i] of
-          '0': _params[i] := '-ReIndex';
-          '1': _params[i] := '-LogIntegrity';
-          '2': _params[i] := '-LogAndRefsIntegrity';
-          '3': _params[i] := '-RecalcTotals';
-          '4': _params[i] := '-IBCompression';
-          '5': _params[i] := '-Rebuild';
-        end;
-      setlength(_params, length(_params) + 1);
-      _params[length(_params) - 1] := _params[0];
-      _params[0] := '/IBCheckAndRepair';
-
-      if not run_1c('DESIGNER', _params) then
-        raise Exception.Create(msg + ' завершено с ошибкой!');
-      msg := msg + ' успешно завершено!';
-      AddLog(LogFile, msg);
-    end;
-
-    ba_enterprise:
-    begin
-      msg := 'Запуск в режиме ENTERPRISE';
-      AddLog(LogFile, msg);
-      if not run_1c('ENTERPRISE', []) then
-        raise Exception.Create(msg + ' завершен с ошибкой!');
-      msg := msg + ' успешно завершен!';
-      AddLog(LogFile, msg);
-    end;
-
-    ba_config:
-    begin
-      msg := 'Запуск в режиме конфигуратора';
-      AddLog(LogFile, msg);
-      if not run_1c('DESIGNER', []) then
-        raise Exception.Create(msg + ' завершен с ошибкой!');
-      msg := msg + ' успешно завершен!';
-      AddLog(LogFile, msg);
-    end;
-
-    ba_integrity:
-    begin
-      msg := 'Восстановление структуры информационной базы';
-      AddLog(LogFile, msg);
-      if not run_1c('DESIGNER', ['/IBRestoreIntegrity']) then
-        raise Exception.Create(msg + ' завершено с ошибкой!');
-      msg := msg + ' успешно завершено!';
-      AddLog(LogFile, msg);
-    end;
-
-    ba_physical:
-    begin
-      msg := 'Восстановление физической целостности';
-      AddLog(LogFile, msg);
-      if not CheckPhysicalIntegrity() then
-        raise Exception.Create(msg + ' завершено с ошибкой!');
-      msg := msg + ' успешно завершено!';
-      AddLog(LogFile, msg);
-    end;
-
-    ba_cache:
-    begin
-      msg := 'Очистка кэша';
-      AddLog(LogFile, msg);
-      if not ClearCache() then
-        raise Exception.Create(msg + ' завершена с ошибкой!');
-      msg := msg + ' успешно завершена!';
-      AddLog(LogFile, msg);
-    end;
-
-    ba_convert:
-    begin
-      msg := 'Конвертация файловой ИБ в новый формат';
-      AddLog(LogFile, msg);
-      if not ConvertFileBase() then
-        raise Exception.Create(msg + ' завершена с ошибкой!');
-      msg := msg + ' успешно завершена!';
-      AddLog(LogFile, msg);
-    end;
-
-    ba_journal:
-    begin
-      msg := 'Сокращение журнала регистрации';
-      if not param.IsEmpty then
-      begin
-        AddLog(LogFile, Format('%s "%s"', [msg, param]));
-        if not ReduceEventLogSize(param) then
-          raise Exception.Create(msg + ' завершено с ошибкой!');
-        msg := msg + ' успешно завершено!';
-        AddLog(LogFile, msg);
-        DeleteOld(IncludeTrailingPathDelimiter(ExpandFileName(bakpath_edit.Text)), '*.lgd', bakcount_edit.Value);
-      end;
-    end;
-
-  end;
-end;
 
 function TForm1.GetIBCheckParams(): string;
 var
@@ -519,154 +548,210 @@ begin
 end;
 
 
-procedure TForm1.SetComponentsEnabled(State: boolean);
+procedure TForm1.AddLog(msg: string);
+var
+  F: TFileStream;
+  PStr: PChar;
+  Str: string;
+  LengthLogString: cardinal;
 begin
-  bakpath_edit.Enabled := State;
-  basepath_edit.Enabled := State;
-  executable_edit.Enabled := State;
-  user_edit.Enabled := State;
-  pass_edit.Enabled := State;
-  BitBtn1.Enabled := State;
-  BitBtn2.Enabled := State;
-  BitBtn3.Enabled := State;
-  macros_list.Enabled := State;
-  bakcount_edit.Enabled := State;
-  pagesize_edit.Enabled := State;
+  Str := DateTimeToStr(Now()) + ': ' + msg + #13#10;
+  LengthLogString := Length(Str);
+  try
+    if FileExists(LogFile) then
+      F := TFileStream.Create(LogFile, fmOpenWrite)
+    else
+    begin
+      ForceDirectories(ExtractFileDir(LogFile));
+      F := TFileStream.Create(LogFile, fmCreate);
+    end;
+  except
+    MessageDlg(Caption, msg, mtError, [mbYes], 0);
+    Exit;
+  end;
+  PStr := StrAlloc(LengthLogString + 1);
+  try
+    try
+      StrPCopy(PStr, Str);
+      F.Position := F.Size;
+      F.Write(PStr^, LengthLogString);
+      Form1.logs_memo.Lines.AddText(Str);
+      Form1.logs_memo.SelStart := MaxInt;
+    except
+      MessageDlg(Form1.Caption, msg, mtError, [mbYes], 0);
+      Exit;
+    end;
+  finally
+    StrDispose(PStr);
+    F.Free;
+  end;
 end;
 
-function TForm1.create_1c(params: array of string): boolean;
+
+
+
+function TMyThread.create_1c(params: array of string): boolean;
 var
   fn: string;
 begin
-  fn := 'logs' + PathDelim + 'test.out';
-  with Process1.Parameters do
+  fn := IncludeTrailingPathDelimiter(ExtractFilePath(ParamStr(0))) + 'logs' + PathDelim + 'test.out';
+  with Form1 do
   begin
-    Clear();
-    Add('CREATEINFOBASE');
-    Add(Format('File="%s";DBFormat=%s;DBPageSize=%s', [basepath_edit.Text, '8.3.8', IntToStr(pagesize_edit.Value) + 'k']));
-    Add('/DumpResult');
-    Add(fn);
-    AddStrings(params);
-  end;
+    with Process1.Parameters do
+    begin
+      Clear();
+      Add('CREATEINFOBASE');
+      Add(Format('File="%s";DBFormat=%s;DBPageSize=%s', [basepath_edit.Text, '8.3.8', IntToStr(pagesize_edit.Value) + 'k']));
+      Add('/DumpResult');
+      Add(fn);
+      AddStrings(params);
+    end;
 
-  Process1.Execute;
+    Process1.Execute;
+
+  end;
   Result := pos('0', ReadFileToString(fn)) > -1;
   DeleteFile(fn);
 end;
 
-function TForm1.run_1c(mode: string; params: array of string): boolean;
+function TMyThread.run_1c(mode: string; params: array of string): boolean;
 begin
-  with Process1.Parameters do
+  with Form1 do
   begin
-    Clear();
-    Add(mode);
-    Add('/DisableStartupMessages');
-    Add('/DisableStartupDialogs');
-    Add('/DisableSplash');
-    AddStrings(params);
-    if string(basepath_edit.Text).StartsWith('http', True) then
-      Add('/WS"' + basepath_edit.Text + '"')
-    else
-      Add('/F"' + basepath_edit.Text + '"');
-    Add('/N"' + user_edit.Text + '"');
-    Add('/P"' + pass_edit.Text + '"');
-    Add('/Out "' + LogFile + '" -NoTruncate');
+    with Process1.Parameters do
+    begin
+      Clear();
+      Add(mode);
+      Add('/DisableStartupMessages');
+      Add('/DisableStartupDialogs');
+      Add('/DisableSplash');
+      AddStrings(params);
+      if string(basepath_edit.Text).StartsWith('http', True) then
+        Add('/WS"' + basepath_edit.Text + '"')
+      else
+        Add('/F"' + basepath_edit.Text + '"');
+      Add('/N"' + user_edit.Text + '"');
+      Add('/P"' + pass_edit.Text + '"');
+      Add('/Out"' + LogFile + '" -NoTruncate');
+    end;
+    Process1.Execute;
+    Result := Process1.ExitStatus = 0;
+
   end;
-  Process1.Execute;
-  Result := Process1.ExitStatus = 0;
 end;
 
 
 
 
-function TForm1.ReduceEventLogSize(date: string): boolean;
+function TMyThread.ReduceEventLogSize(date: string): boolean;
 var
   fn: string;
 begin
-  Result := True;
-  fn := IncludeTrailingPathDelimiter(ExpandFileName(bakpath_edit.Text)) + date + '.lgd';
-  AddLog(LogFile, 'Backup: "' + fn + '"');
-  run_1c('DESIGNER', ['/ReduceEventLogSize ' + date, '-saveAs"' + fn + '"']);
+  with Form1 do
+  begin
+    Result := True;
+    fn := IncludeTrailingPathDelimiter(ExpandFileName(bakpath_edit.Text)) + date + '.lgd';
+    AddLog('Backup: "' + fn + '"');
+    run_1c('DESIGNER', ['/ReduceEventLogSize ' + date, '-saveAs"' + fn + '"']);
 
-  SomeProc.CurrentDirectory := ExtractFilePath(ParamStr(0));
+    SomeProc.CurrentDirectory := ExtractFilePath(ParamStr(0));
   {$IFDEF MSWINDOWS}
-  SomeProc.Executable := FindFilenameOfCmd('sqlite3.exe');
+    SomeProc.Executable := FindFilenameOfCmd('sqlite3.exe');
   {$ENDIF}
   {$IFDEF UNIX}
-  SomeProc.Executable := FindFilenameOfCmd('sqlite3');
+    SomeProc.Executable := FindFilenameOfCmd('sqlite3');
   {$ENDIF}
-  if FileExists(SomeProc.Executable) then
-  begin
-    SomeProc.Options := [poWaitOnExit];
-    SomeProc.ShowWindow := swoHIDE;
-    with SomeProc.Parameters do
+    if FileExists(SomeProc.Executable) then
     begin
-      Clear();
-      Add(IncludeTrailingPathDelimiter(basepath_edit.Text) + '1Cv8Log' + PathDelim + '1Cv8.lgd');
-      Add('vacuum');
-    end;
-    SomeProc.Execute;
-  end
-  else
-    AddLog(LogFile, 'Отсутствует: "' + SomeProc.Executable + '"');
+      SomeProc.Options := [poWaitOnExit];
+      SomeProc.ShowWindow := swoHIDE;
+      with SomeProc.Parameters do
+      begin
+        Clear();
+        Add(IncludeTrailingPathDelimiter(basepath_edit.Text) + '1Cv8Log' + PathDelim + '1Cv8.lgd');
+        Add('vacuum');
+      end;
+      SomeProc.Execute;
+    end
+    else
+    begin
+      fmsg := 'Отсутствует: "' + SomeProc.Executable + '"';
+      Synchronize(@showstatus);
 
+    end;
+
+  end;
 end;
 
 
-function TForm1.CheckPhysicalIntegrity(): boolean;
+function TMyThread.CheckPhysicalIntegrity(): boolean;
 begin
-  SomeProc.CurrentDirectory := ExtractFilePath(executable_edit.Text);
+  with Form1 do
+  begin
+    SomeProc.CurrentDirectory := ExtractFilePath(executable_edit.Text);
   {$IFDEF MSWINDOWS}
-  SomeProc.Executable := IncludeTrailingPathDelimiter(SomeProc.CurrentDirectory) + 'chdbfl.exe';
+    SomeProc.Executable := IncludeTrailingPathDelimiter(SomeProc.CurrentDirectory) + 'chdbfl.exe';
   {$ENDIF}
   {$IFDEF UNIX}
-  SomeProc.Executable := IncludeTrailingPathDelimiter(SomeProc.CurrentDirectory) + 'chdbfl';
+    SomeProc.Executable := IncludeTrailingPathDelimiter(SomeProc.CurrentDirectory) + 'chdbfl';
   {$ENDIF}
-  if FileExists(SomeProc.Executable) then
-  begin
-    SomeProc.Options := [poWaitOnExit];
-    SomeProc.ShowWindow := swoShowNormal;
-    SomeProc.Execute;
-  end
-  else
-    AddLog(LogFile, 'Отсутствует: "' + SomeProc.Executable + '"');
-  Result := SomeProc.ExitStatus = 0;
+    if FileExists(SomeProc.Executable) then
+    begin
+      SomeProc.Options := [poWaitOnExit];
+      SomeProc.ShowWindow := swoShowNormal;
+      SomeProc.Execute;
+    end
+    else
+    begin
+      fmsg := 'Отсутствует: "' + SomeProc.Executable + '"';
+      Synchronize(@showstatus);
+    end;
+    Result := SomeProc.ExitStatus = 0;
+
+  end;
 end;
 
-function TForm1.ConvertFileBase(): boolean;
+function TMyThread.ConvertFileBase(): boolean;
 var
   base_file: string;
 begin
-  base_file := IncludeTrailingPathDelimiter(basepath_edit.Text) + '1Cv8.1CD';
-  SomeProc.CurrentDirectory := ExtractFilePath(executable_edit.Text);
+  with Form1 do
+  begin
+    base_file := IncludeTrailingPathDelimiter(basepath_edit.Text) + '1Cv8.1CD';
+    SomeProc.CurrentDirectory := ExtractFilePath(executable_edit.Text);
   {$IFDEF MSWINDOWS}
-  SomeProc.Executable := IncludeTrailingPathDelimiter(SomeProc.CurrentDirectory) + 'cnvdbfl.exe';
+    SomeProc.Executable := IncludeTrailingPathDelimiter(SomeProc.CurrentDirectory) + 'cnvdbfl.exe';
   {$ENDIF}
   {$IFDEF UNIX}
-  SomeProc.Executable := IncludeTrailingPathDelimiter(SomeProc.CurrentDirectory) + 'cnvdbfl';
+    SomeProc.Executable := IncludeTrailingPathDelimiter(SomeProc.CurrentDirectory) + 'cnvdbfl';
   {$ENDIF}
 
-  if FileExists(SomeProc.Executable) then
-  begin
-    SomeProc.Options := [poWaitOnExit];
-    SomeProc.ShowWindow := swoHIDE;
-    with SomeProc.Parameters do
+    if FileExists(SomeProc.Executable) then
     begin
-      Clear();
-      Add('--convert');
-      Add('--format=8.3.8');
-      Add('--page=' + IntToStr(pagesize_edit.Value) + 'k');
-      Add(base_file);
+      SomeProc.Options := [poWaitOnExit];
+      SomeProc.ShowWindow := swoHIDE;
+      with SomeProc.Parameters do
+      begin
+        Clear();
+        Add('--convert');
+        Add('--format=8.3.8');
+        Add('--page=' + IntToStr(pagesize_edit.Value) + 'k');
+        Add(base_file);
+      end;
+      SomeProc.Execute;
+    end
+    else
+    begin
+      fmsg := 'Отсутствует: "' + SomeProc.Executable + '"';
+      Synchronize(@showstatus);
     end;
-    SomeProc.Execute;
-  end
-  else
-    AddLog(LogFile, 'Отсутствует: "' + SomeProc.Executable + '"');
-  Result := SomeProc.ExitStatus = 0;
+    Result := SomeProc.ExitStatus = 0;
+
+  end;
 end;
 
 
-function TForm1.ClearCache(): boolean;
+function TMyThread.ClearCache(): boolean;
 var
   paths, envs: tstringarray;
   i, j: integer;
@@ -686,7 +771,8 @@ begin
     for j := 0 to length(paths) - 1 do
     begin
       p := IncludeTrailingPathDelimiter(envs[i]) + paths[j];
-      AddLog(LogFile, Format('Удаление %s', [p]));
+      fmsg := Format('Удаление %s', [p]);
+      Synchronize(@showstatus);
       if DirectoryExists(p) then
         DeleteDirectory(p, True);
     end;
@@ -728,7 +814,7 @@ var
   msg: string;
 begin
   msg := e.message;
-  AddLog(LogFile, msg);
+  AddLog(msg);
   MessageDlg('Непредвиденная ошибка: "' + msg + '" .Проверьте ' +
     ExtractFilePath(ParamStr(0)) + LogFile,
     mtError, [mbOK], 0);
@@ -756,7 +842,9 @@ var
   i: integer;
 
 begin
+
   Application.OnException := @CustomExceptionHandler;
+
 
   Process1.CurrentDirectory := ExtractFilePath(ParamStr(0));
   Process1.Options := [poWaitOnExit];
@@ -772,14 +860,18 @@ begin
   end;
   Caption := Format('%s: "%s"', ['upd_1c', iniPath]);
   ini := TIniFile.Create(iniPath);
-  LogFile := 'logs' + PathDelim + ChangeFileExt(ExtractFileName(iniPath), '.log');
+  LogFile := IncludeTrailingPathDelimiter(ExtractFilePath(ParamStr(0))) + 'logs' + PathDelim +
+    ChangeFileExt(ExtractFileName(iniPath), '.log');
   mi_reload_config.Click();
   populateMacrosMenu(commands_menu, macros_menu.Items[0]);
-  AddLog(LogFile, ExtractFileName(ParamStr(0)) + ' started!');
+  AddLog(ExtractFileName(ParamStr(0)) + ' started!');
   if run_non_interactive then
   begin
     Application.ShowMainForm := False;
     MyThread := TMyThread.Create(ba_macro);
+    MyThread.OnShowStatus := @AddLog;
+    MyThread.Start;
+
   end;
 end;
 
@@ -815,7 +907,12 @@ begin
     if (Sender as TMenuItem).Tag = 1 then
       AddMacrosCommand(Sender, ba_createcfg, OpenDialog1.FileName)
     else
+    begin
       MyThread := TMyThread.Create(ba_createcfg, OpenDialog1.FileName);
+      MyThread.OnShowStatus := @AddLog;
+      MyThread.Start;
+    end;
+
 end;
 
 procedure TForm1.BitBtn1Click(Sender: TObject);
@@ -845,6 +942,8 @@ end;
 procedure TForm1.mi_runmacroClick(Sender: TObject);
 begin
   MyThread := TMyThread.Create(ba_macro);
+  MyThread.OnShowStatus := @AddLog;
+  MyThread.Start;
 end;
 
 procedure TForm1.mi_del_from_macroClick(Sender: TObject);
@@ -870,7 +969,12 @@ begin
   if (Sender as TMenuItem).Tag = 1 then
     AddMacrosCommand(Sender, ba_cache)
   else
+  begin
     MyThread := TMyThread.Create(ba_cache);
+    MyThread.OnShowStatus := @AddLog;
+    MyThread.Start;
+  end;
+
 end;
 
 procedure TForm1.mi_reduce_journalClick(Sender: TObject);
@@ -880,7 +984,11 @@ begin
     if (Sender as TMenuItem).Tag = 1 then
       AddMacrosCommand(Sender, ba_journal, FormatDateTime('yyyy-mm-dd', CalendarDialog1.Date))
     else
+    begin
       MyThread := TMyThread.Create(ba_journal, FormatDateTime('yyyy-mm-dd', CalendarDialog1.Date));
+      MyThread.OnShowStatus := @AddLog;
+      MyThread.Start;
+    end;
 end;
 
 
@@ -890,7 +998,11 @@ begin
   if (Sender as TMenuItem).Tag = 1 then
     AddMacrosCommand(Sender, ba_integrity)
   else
+  begin
     MyThread := TMyThread.Create(ba_integrity);
+    MyThread.OnShowStatus := @AddLog;
+    MyThread.Start;
+  end;
 end;
 
 
@@ -900,7 +1012,11 @@ begin
   if (Sender as TMenuItem).Tag = 1 then
     AddMacrosCommand(Sender, ba_physical)
   else
+  begin
     MyThread := TMyThread.Create(ba_physical);
+    MyThread.OnShowStatus := @AddLog;
+    MyThread.Start;
+  end;
 end;
 
 
@@ -911,7 +1027,11 @@ begin
   if (Sender as TMenuItem).Tag = 1 then
     AddMacrosCommand(Sender, ba_convert)
   else
+  begin
     MyThread := TMyThread.Create(ba_convert);
+    MyThread.OnShowStatus := @AddLog;
+    MyThread.Start;
+  end;
 end;
 
 
@@ -922,7 +1042,11 @@ begin
   if (Sender as TMenuItem).Tag = 1 then
     AddMacrosCommand(Sender, ba_enterprise)
   else
+  begin
     MyThread := TMyThread.Create(ba_enterprise);
+    MyThread.OnShowStatus := @AddLog;
+    MyThread.Start;
+  end;
 end;
 
 procedure TForm1.mi_run_designerClick(Sender: TObject);
@@ -930,7 +1054,11 @@ begin
   if (Sender as TMenuItem).Tag = 1 then
     AddMacrosCommand(Sender, ba_config)
   else
+  begin
     MyThread := TMyThread.Create(ba_config);
+    MyThread.OnShowStatus := @AddLog;
+    MyThread.Start;
+  end;
 end;
 
 function TForm1.GetInitialDir(): string;
@@ -962,7 +1090,11 @@ begin
     if (Sender as TMenuItem).Tag = 1 then
       AddMacrosCommand(Sender, ba_update, OpenDialog1.FileName)
     else
+    begin
       MyThread := TMyThread.Create(ba_update, OpenDialog1.FileName);
+      MyThread.OnShowStatus := @AddLog;
+      MyThread.Start;
+    end;
 end;
 
 procedure TForm1.mi_update_cfgClick(Sender: TObject);
@@ -970,7 +1102,11 @@ begin
   if (Sender as TMenuItem).Tag = 1 then
     AddMacrosCommand(Sender, ba_updatecfg)
   else
+  begin
     MyThread := TMyThread.Create(ba_updatecfg);
+    MyThread.OnShowStatus := @AddLog;
+    MyThread.Start;
+  end;
 end;
 
 
@@ -981,7 +1117,12 @@ begin
   if (Sender as TMenuItem).Tag = 1 then
     AddMacrosCommand(Sender, ba_dumpib)
   else
+  begin
     MyThread := TMyThread.Create(ba_dumpib);
+    MyThread.OnShowStatus := @AddLog;
+    MyThread.Start;
+  end;
+
 end;
 
 procedure TForm1.mi_loadibClick(Sender: TObject);
@@ -992,7 +1133,11 @@ begin
     if (Sender as TMenuItem).Tag = 1 then
       AddMacrosCommand(Sender, ba_restoreib, OpenDialog1.FileName)
     else
+    begin
       MyThread := TMyThread.Create(ba_restoreib, OpenDialog1.FileName);
+      MyThread.OnShowStatus := @AddLog;
+      MyThread.Start;
+    end;
 end;
 
 procedure TForm1.mi_dumpcfgClick(Sender: TObject);
@@ -1000,7 +1145,11 @@ begin
   if (Sender as TMenuItem).Tag = 1 then
     AddMacrosCommand(Sender, ba_dumpcfg)
   else
+  begin
     MyThread := TMyThread.Create(ba_dumpcfg);
+    MyThread.OnShowStatus := @AddLog;
+    MyThread.Start;
+  end;
 end;
 
 procedure TForm1.mi_reload_configClick(Sender: TObject);
@@ -1028,7 +1177,7 @@ begin
   finally
     list.Free;
   end;
-  AddLog(LogFile, 'Настройки загружены');
+  AddLog('Настройки загружены');
 end;
 
 procedure TForm1.mi_save_configClick(Sender: TObject);
@@ -1047,7 +1196,7 @@ begin
   for i := 0 to macros_list.Count - 1 do
     ini.WriteString(SectionMacro, Format('%d_%d', [i, Ord(TBaseAction(PtrInt(macros_list.Items.Objects[i])))]),
       macros_list.Items[i]);
-  AddLog(LogFile, 'Настройки сохранены');
+  AddLog('Настройки сохранены');
 end;
 
 
@@ -1060,7 +1209,11 @@ begin
     if (Sender as TMenuItem).Tag = 1 then
       AddMacrosCommand(Sender, ba_loadcfg, OpenDialog1.FileName)
     else
+    begin
       MyThread := TMyThread.Create(ba_loadcfg, OpenDialog1.FileName);
+      MyThread.OnShowStatus := @AddLog;
+      MyThread.Start;
+    end;
 end;
 
 procedure TForm1.mi_testcheckClick(Sender: TObject);
@@ -1072,7 +1225,11 @@ begin
     if (Sender as TMenuItem).Tag = 1 then
       AddMacrosCommand(Sender, ba_check, params)
     else
+    begin
       MyThread := TMyThread.Create(ba_check, params);
+      MyThread.OnShowStatus := @AddLog;
+      MyThread.Start;
+    end;
 end;
 
 function TForm1.AddMacrosCommand(Sender: TObject; baseAction: TBaseAction; param: string = ''): boolean;
@@ -1103,28 +1260,6 @@ begin
     #10#13 + 'Version: ' + Version + #10#13 + 'Автор: Дмитрий Воротилин, dvor85@gmail.com',
     mtInformation, [mbOK], 0);
 end;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
