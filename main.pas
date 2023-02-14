@@ -11,7 +11,7 @@ uses
   lazutf8, process, UTF8Process, lclintf, TypInfo, CheckAndRepairForm;
 
 const
-  Version: string = '2.3.5';
+  Version: string = '2.3.6';
   SectionMain: string = 'Main';
   KeyExecutable: string = 'Executable';
   SectionBase: string = 'Base';
@@ -28,7 +28,8 @@ const
 type
 
   TBaseAction = (ba_update, ba_updatecfg, ba_dumpib, ba_restoreib, ba_dumpcfg,
-    ba_loadcfg, ba_check, ba_enterprise, ba_config, ba_cache, ba_journal, ba_integrity, ba_physical,
+    ba_loadcfg, ba_check, ba_enterprise, ba_config, ba_cache, ba_journal,
+    ba_integrity, ba_physical,
     ba_macro, ba_convert, ba_createcfg);
 
   TShowStatusEvent = procedure(Status: string) of object;
@@ -65,6 +66,7 @@ type
     BitBtn1: TBitBtn;
     BitBtn2: TBitBtn;
     BitBtn3: TBitBtn;
+    BitBtn4: TBitBtn;
     CalendarDialog1: TCalendarDialog;
     commands_menu: TMenuItem;
     GroupBox4: TGroupBox;
@@ -78,6 +80,7 @@ type
     basepath_edit: TLabeledEdit;
     executable_edit: TLabeledEdit;
     MenuItem1: TMenuItem;
+    mi_createcfg: TMenuItem;
     mi_update_cfg: TMenuItem;
     Process1: TProcessUTF8;
     SomeProc: TProcessUTF8;
@@ -119,9 +122,11 @@ type
     pagesize_edit: TSpinEdit;
     Splitter1: TSplitter;
 
+    procedure basepath_editChange(Sender: TObject);
     procedure BitBtn1Click(Sender: TObject);
     procedure BitBtn2Click(Sender: TObject);
     procedure BitBtn3Click(Sender: TObject);
+    procedure BitBtn4Click(Sender: TObject);
     procedure FormClose(Sender: TObject; var CloseAction: TCloseAction);
     procedure FormCloseQuery(Sender: TObject; var CanClose: boolean);
     procedure FormCreate(Sender: TObject);
@@ -161,6 +166,7 @@ type
     progress: integer;
     procedure populateMacrosMenu(src, dst: TMenuItem);
     function GetIBCheckParams(): string;
+    function GetBasePageSize(): integer;
     procedure CustomExceptionHandler(Sender: TObject; E: Exception);
 
 
@@ -218,9 +224,6 @@ begin
 end;
 
 
-{ TForm1 }
-
-
 constructor TMyThread.Create(BaseAction: TBaseAction; Param: string = '');
 begin
   inherited Create(False);
@@ -242,6 +245,7 @@ begin
     BitBtn1.Enabled := FState;
     BitBtn2.Enabled := FState;
     BitBtn3.Enabled := FState;
+    BitBtn4.Enabled := FState;
     macros_list.Enabled := FState;
     bakcount_edit.Enabled := FState;
     pagesize_edit.Enabled := FState;
@@ -310,7 +314,8 @@ begin
             raise Exception.Create(msg + ' не выполнена!');
           fmsg := msg + ' завершена!';
           Synchronize(@showstatus);
-          DeleteOld(IncludeTrailingPathDelimiter(ExpandFileName(bakpath_edit.Text)), '*.dt', bakcount_edit.Value);
+          DeleteOld(IncludeTrailingPathDelimiter(ExpandFileName(bakpath_edit.Text)),
+            '*.dt', bakcount_edit.Value);
         end;
 
         ba_restoreib:
@@ -336,7 +341,8 @@ begin
             raise Exception.Create('Кофигурация не выгружена!');
           fmsg := 'Кофигурация успешно выгружена!';
           Synchronize(@showstatus);
-          DeleteOld(IncludeTrailingPathDelimiter(ExpandFileName(bakpath_edit.Text)), '*.cf', bakcount_edit.Value);
+          DeleteOld(IncludeTrailingPathDelimiter(ExpandFileName(bakpath_edit.Text)),
+            '*.cf', bakcount_edit.Value);
         end;
 
         ba_loadcfg:
@@ -351,7 +357,8 @@ begin
           if ExtractFileExt(param) = '.cfe' then
           begin
             msg := 'Загрузка расширения';
-            _params[2] := '-Extension"' + StringReplace(ExtractFileName(param), '.cfe', '', [rfReplaceAll, rfIgnoreCase]) + '"';
+            _params[2] := '-Extension"' + StringReplace(ExtractFileName(param), '.cfe',
+              '', [rfReplaceAll, rfIgnoreCase]) + '"';
           end;
           if (param = '') or (not run_1c('DESIGNER', _params)) then
             raise Exception.Create('Ошибка ' + msg + '!');
@@ -416,7 +423,8 @@ begin
 
         ba_integrity:
         begin
-          fmsg := 'Восстановление структуры информационной базы';
+          fmsg :=
+            'Восстановление структуры информационной базы';
           Synchronize(@showstatus);
           if not run_1c('DESIGNER', ['/IBRestoreIntegrity']) then
             raise Exception.Create(fmsg + ' завершено с ошибкой!');
@@ -465,7 +473,8 @@ begin
               raise Exception.Create(msg + ' завершено с ошибкой!');
             fmsg := msg + ' успешно завершено!';
             Synchronize(@showstatus);
-            DeleteOld(IncludeTrailingPathDelimiter(ExpandFileName(bakpath_edit.Text)), '*.lgd', bakcount_edit.Value);
+            DeleteOld(IncludeTrailingPathDelimiter(ExpandFileName(bakpath_edit.Text)),
+              '*.lgd', bakcount_edit.Value);
           end;
         end;
       end;
@@ -500,7 +509,8 @@ begin
       begin
         if Process1.Running then
         begin
-          fmsg := 'Процесс уже запущен, дождитесь окончания!';
+          fmsg :=
+            'Процесс уже запущен, дождитесь окончания!';
           Synchronize(@showstatus);
           exit;
         end;
@@ -527,7 +537,7 @@ begin
 end;
 
 
-
+{ TForm1 }
 
 function TForm1.GetIBCheckParams(): string;
 var
@@ -601,7 +611,8 @@ begin
     begin
       Clear();
       Add('CREATEINFOBASE');
-      Add(Format('File="%s";DBFormat=%s;DBPageSize=%s', [basepath_edit.Text, '8.3.8', IntToStr(pagesize_edit.Value) + 'k']));
+      Add(Format('File="%s";DBFormat=%s;DBPageSize=%s', [basepath_edit.Text, '8.3.8',
+        IntToStr(pagesize_edit.Value) + 'k']));
       Add('/DumpResult');
       Add(fn);
       AddStrings(params);
@@ -639,8 +650,6 @@ begin
 
   end;
 end;
-
-
 
 
 function TMyThread.ReduceEventLogSize(date: string): boolean;
@@ -726,7 +735,7 @@ begin
     SomeProc.Executable := IncludeTrailingPathDelimiter(SomeProc.CurrentDirectory) + 'cnvdbfl';
   {$ENDIF}
 
-    if FileExists(SomeProc.Executable) then
+    if FileExists(SomeProc.Executable) and FileExists(base_file) then
     begin
       SomeProc.Options := [poWaitOnExit];
       SomeProc.ShowWindow := swoHIDE;
@@ -778,12 +787,101 @@ begin
     end;
 end;
 
+function TForm1.GetBasePageSize(): integer;
+var
+  base_file:string;
+  aout: tstringlist;
+begin
+  result:=8;
+  base_file := IncludeTrailingPathDelimiter(basepath_edit.Text) + '1Cv8.1CD';
+  SomeProc.CurrentDirectory := ExtractFilePath(executable_edit.Text);
+  {$IFDEF MSWINDOWS}
+  SomeProc.Executable := IncludeTrailingPathDelimiter(SomeProc.CurrentDirectory) + 'cnvdbfl.exe';
+  {$ENDIF}
+  {$IFDEF UNIX}
+  SomeProc.Executable := IncludeTrailingPathDelimiter(SomeProc.CurrentDirectory) + 'cnvdbfl';
+  {$ENDIF}
+  if FileExists(SomeProc.Executable) and FileExists(base_file) then
+  begin
+    SomeProc.Options := [poWaitOnExit, poUsePipes,  poStdErrToOutPut];
+    SomeProc.ShowWindow := swoHIDE;
+    with SomeProc.Parameters do
+    begin
+      Clear();
+      Add('--info');
+      Add(base_file);
+    end;
+    SomeProc.Execute;
+    aout := tstringlist.Create;
+    try
+       aout.LoadFromStream(SomeProc.Output);
+       result:=aout[1].Remove(0, aout[1].IndexOf(':')+2).ToInteger div 1024;
+    finally
+       aout.free();
+    end;
+  end;
+end;
+
 procedure TForm1.BitBtn3Click(Sender: TObject);
 begin
   SelectDirectoryDialog1.InitialDir := bakpath_edit.Text;
   if SelectDirectoryDialog1.Execute then
   begin
     bakpath_edit.Text := SelectDirectoryDialog1.FileName;
+  end;
+end;
+
+procedure TForm1.BitBtn4Click(Sender: TObject);
+var
+  paths, envs: tstringarray;
+  flist: TStringList;
+  i, j, k: integer;
+  max_ver, max_path, dir_name, p: string;
+  base_file :string;
+  aout:tstringlist;
+begin
+  {$IFDEF MSWINDOWS}
+  envs := TStringArray.Create(IncludeTrailingPathDelimiter(GetEnvironmentVariableUTF8('LocalAppData')) +
+    'Programs' + PathDelim, IncludeTrailingPathDelimiter(GetEnvironmentVariableUTF8('PROGRAMFILES')),
+    IncludeTrailingPathDelimiter(GetEnvironmentVariableUTF8('PROGRAMFILES(x86)')),
+    IncludeTrailingPathDelimiter(GetEnvironmentVariableUTF8('PROGRAMW6432')));
+
+  paths := TStringArray.Create('1cv8' + PathDelim, '1cv8_x86' + pathDelim, '1cv8_x64' + PathDelim);
+  {$ENDIF}
+  {$IFDEF UNIX}
+  envs := TStringArray.Create('/opt/1cv8/');
+  paths := TStringArray.Create('x86_64/');
+  {$ENDIF}
+  max_ver := '';
+  for i := 0 to length(envs) - 1 do
+    for j := 0 to length(paths) - 1 do
+    begin
+      p := envs[i] + paths[j];
+      logs_memo.Append(Format('Поиск в: %s', [p]));
+      flist := FindAllDirectories(p, False);
+      try
+        for k := 0 to flist.Count - 1 do
+        begin
+          dir_name := ExtractFileName(flist[k]);
+          if dir_name.StartsWith('8') and (dir_name > max_ver) then
+          begin
+            logs_memo.Append(Format('Найдена версия: %s', [dir_name]));
+            max_ver := dir_name;
+            max_path := IncludeTrailingPathDelimiter(flist[k]);
+          end;
+        end;
+      finally
+        flist.Free;
+      end;
+    end;
+  if not max_ver.IsEmpty then
+  begin
+    {$IFDEF MSWINDOWS}
+    executable_edit.Text := max_path + 'bin' + PathDelim + '1cv8.exe';
+    {$ENDIF}
+    {$IFDEF UNIX}
+    executable_edit.Text := max_path + '1cv8';
+    {$ENDIF}
   end;
 end;
 
@@ -865,6 +963,7 @@ begin
   mi_reload_config.Click();
   populateMacrosMenu(commands_menu, macros_menu.Items[0]);
   AddLog(ExtractFileName(ParamStr(0)) + ' started!');
+
   if run_non_interactive then
   begin
     Application.ShowMainForm := False;
@@ -879,6 +978,7 @@ procedure TForm1.executable_editChange(Sender: TObject);
 begin
   if not Process1.Running then
     Process1.Executable := executable_edit.Text;
+  pagesize_edit.value:=GetBasePageSize();
 end;
 
 procedure TForm1.macros_listDragDrop(Sender, Source: TObject; X, Y: integer);
@@ -922,6 +1022,11 @@ begin
   begin
     basepath_edit.Text := SelectDirectoryDialog1.FileName;
   end;
+end;
+
+procedure TForm1.basepath_editChange(Sender: TObject);
+begin
+  pagesize_edit.Value:=GetBasePageSize();
 end;
 
 
@@ -1173,7 +1278,8 @@ begin
     ini.ReadSectionValues(SectionMacro, list);
     macros_list.Clear;
     for i := 0 to list.Count - 1 do
-      macros_list.AddItem(list.ValueFromIndex[i], TObject(PtrInt(TBaseAction(StrToInt(list.Names[i].Split('_')[1])))));
+      macros_list.AddItem(list.ValueFromIndex[i],
+        TObject(PtrInt(TBaseAction(StrToInt(list.Names[i].Split('_')[1])))));
   finally
     list.Free;
   end;
@@ -1240,7 +1346,8 @@ begin
   if param.IsEmpty() then
   begin
     if (k > -1) then
-      macros_list.Items.InsertObject(k, TMenuItem(Sender).Caption, TObject(PtrInt(baseAction)))
+      macros_list.Items.InsertObject(k, TMenuItem(Sender).Caption,
+        TObject(PtrInt(baseAction)))
     else
       macros_list.AddItem(TMenuItem(Sender).Caption, TObject(PtrInt(baseAction)));
   end
@@ -1249,7 +1356,8 @@ begin
     if (k > -1) then
       macros_list.Items.InsertObject(k, Format('%s(%s)', [TMenuItem(Sender).Caption, param]), TObject(PtrInt(baseAction)))
     else
-      macros_list.AddItem(Format('%s(%s)', [TMenuItem(Sender).Caption, param]), TObject(PtrInt(baseAction)));
+      macros_list.AddItem(Format('%s(%s)', [TMenuItem(Sender).Caption, param]),
+        TObject(PtrInt(baseAction)));
   end;
   Result := True;
 end;
@@ -1258,6 +1366,27 @@ procedure TForm1.MenuItem4Click(Sender: TObject);
 begin
   MessageDlg('Программа для пакетного обновления типовых конфигураций!' +
     #10#13 + 'Version: ' + Version + #10#13 + 'Автор: Дмитрий Воротилин, dvor85@gmail.com',
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     mtInformation, [mbOK], 0);
 end;
 
