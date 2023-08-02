@@ -11,7 +11,7 @@ object Form1: TForm1
   OnCloseQuery = FormCloseQuery
   OnCreate = FormCreate
   Position = poDesktopCenter
-  LCLVersion = '2.0.8.0'
+  LCLVersion = '2.2.6.0'
   object GroupBox1: TGroupBox
     Left = 0
     Height = 75
@@ -384,18 +384,18 @@ object Form1: TForm1
   end
   object SelectDirectoryDialog1: TSelectDirectoryDialog
     Options = [ofReadOnly, ofEnableSizing, ofViewDetail]
-    left = 427
-    top = 327
+    Left = 427
+    Top = 327
   end
   object OpenDialog1: TOpenDialog
     Filter = '*.cfu;*.cf|*.cfu;*.cf|*.exe|*.exe|*.cf;*.cfe|*.cf;*.cfe|*.dt|*.dt|all|*|*.cf;*.dt|*.cf;*.dt'
     Options = [ofFileMustExist, ofEnableSizing, ofViewDetail]
-    left = 260
-    top = 327
+    Left = 260
+    Top = 327
   end
   object MainMenu1: TMainMenu
-    left = 240
-    top = 254
+    Left = 240
+    Top = 254
     object commands_menu: TMenuItem
       Caption = 'Команды'
       object mi_run_enterprise: TMenuItem
@@ -489,8 +489,8 @@ object Form1: TForm1
     end
   end
   object macros_menu: TPopupMenu
-    left = 120
-    top = 254
+    Left = 120
+    Top = 254
     object mi_add_to_macro: TMenuItem
       Caption = 'Добавить'
     end
@@ -508,8 +508,8 @@ object Form1: TForm1
     Date = 44238
     OKCaption = '&ОК'
     CancelCaption = 'Отмена'
-    left = 440
-    top = 224
+    Left = 440
+    Top = 224
   end
   object Process1: TProcessUTF8
     Active = False
@@ -524,8 +524,8 @@ object Form1: TForm1
     WindowTop = 0
     WindowWidth = 0
     FillAttribute = 0
-    left = 354
-    top = 267
+    Left = 354
+    Top = 267
   end
   object SomeProc: TProcessUTF8
     Active = False
@@ -540,7 +540,7 @@ object Form1: TForm1
     WindowTop = 0
     WindowWidth = 0
     FillAttribute = 0
-    left = 541
-    top = 247
+    Left = 541
+    Top = 247
   end
 end

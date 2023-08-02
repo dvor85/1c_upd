@@ -11,7 +11,7 @@ uses
   lazutf8, process, UTF8Process, lclintf, TypInfo, CheckAndRepairForm;
 
 const
-  Version: string = '2.3.6';
+  Version: string = '2.3.7';
   SectionMain: string = 'Main';
   KeyExecutable: string = 'Executable';
   SectionBase: string = 'Base';
@@ -949,7 +949,7 @@ begin
   iniPath := ChangeFileExt(ParamStr(0), '.ini');
   for i := 1 to Paramcount do
   begin
-    if FileExists(ParamStr(i)) then
+    if FileExists(ParamStr(i)) or (ExtractFileExt(ParamStr(i)) = '.ini') then
     begin
       iniPath := ParamStr(i);
       continue;
